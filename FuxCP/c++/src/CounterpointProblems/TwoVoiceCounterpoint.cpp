@@ -15,8 +15,8 @@
  * @param ub the highest note possible for the counterpoint in MIDI
  */
 TwoVoiceCounterpoint::TwoVoiceCounterpoint(vector<int> cf, Species sp, int v_type, vector<int> m_costs, vector<int> g_costs, 
-    vector<int> s_costs, vector<int> imp, int bm) : 
-    CounterpointProblem(cf, v_type, m_costs, g_costs, s_costs, imp, TWO_VOICES){
+    vector<int> s_costs, vector<int> imp, int bm, ObjectiveMode objMode) : 
+    CounterpointProblem(cf, v_type, m_costs, g_costs, s_costs, imp, TWO_VOICES, objMode){
     species = sp;
     upper_1 = new Stratum(*this, nMeasures, 0, 127, lowest->getNotes()); 
     upper_2 = nullptr;
@@ -114,7 +114,7 @@ TwoVoiceCounterpoint::TwoVoiceCounterpoint(vector<int> cf, Species sp, int v_typ
     branch(*this, solutionArray, INT_VAR_AFC_MAX(), INT_VAL_RND(1U)); // AFC to focus a bit more on variables involved in failures
     //branch(*this, solutionArray, INT_VAR_AFC_MAX(), INT_VAL_MIN()); // Better --> NO, too slow
 
-    branch(*this, cost(), INT_VAR_NONE(), INT_VAL_MIN()); // Solves all "ValOfUnassignedVar" problems + accelerate every test
+    branch(*this, cost(), INT_VAR_NONE(), INT_VAL_MAX()); // Solves all "ValOfUnassignedVar" problems + accelerate every test
 
 }
 // COPY CONSTRUCTOR
