@@ -84,26 +84,26 @@ $(TARGET): $(OBJS)
 # GÉNÉRATEUR DE CONTREPOINTS (binaire principal)
 # =============================================================
 
-GENERATE_COUNTERPOINT_SOURCES = src/GenerateCounterpoint.cpp $(SHARED_SOURCES) src/Midi.cpp
+GENERATE_COUNTERPOINT_SOURCES = src/Generations.cpp $(SHARED_SOURCES) src/Midi.cpp
 
 compile_generate_counterpoint:
 	@mkdir -p $(COMPILED_DIR)
 	$(CXX) $(CXXFLAGS_DEBUG) $(GENERATE_COUNTERPOINT_SOURCES) \
-	    -o $(COMPILED_DIR)/GenerateCounterpoint $(LIBS_MINIMAL)
+	    -o $(COMPILED_DIR)/Generations $(LIBS_MINIMAL)
 
 # --- Génération d'un contrepoint précis ---
 # Usage : make generate COMBO="<nb_voix> <especes...>" [CF=<n>] [TIMEOUT=<ms>] [STAGNATION=<ms>]
 # Exemple : make generate COMBO="2 1"
 # Exemple : make generate COMBO="4 1 2 3" CF=2 TIMEOUT=300000 STAGNATION=120000
 generate: compile_generate_counterpoint
-	$(COMPILED_DIR)/GenerateCounterpoint $(COMBO) -c $(CF) $(if $(TIMEOUT),-t $(TIMEOUT),) $(if $(STAGNATION),-s $(STAGNATION),)
+	$(COMPILED_DIR)/Generations $(COMBO) -c $(CF) $(if $(TIMEOUT),-t $(TIMEOUT),) $(if $(STAGNATION),-s $(STAGNATION),)
 
 # =============================================================
 # NETTOYAGE
 # =============================================================
 
 clean:
-	rm -f $(COMPILED_DIR)/GenerateCounterpoint
+	rm -f $(COMPILED_DIR)/Generations
 	rm -rf $(COMPILED_DIR)/CounterpointProblems $(COMPILED_DIR)/Parts
 	rm -f $(COMPILED_DIR)/*.o
 	rm -f $(TARGET)
