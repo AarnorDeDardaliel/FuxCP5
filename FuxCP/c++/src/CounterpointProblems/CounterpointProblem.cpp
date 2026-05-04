@@ -3,7 +3,7 @@
 // 
 
 #include "../../headers/CounterpointProblems/CounterpointProblem.hpp"
-#include "../../headers/CounterpointUtils.hpp"
+#include "../../headers/CounterpointProblems/CounterpointUtils.hpp"
 
 /**
  * Constructor of the class.

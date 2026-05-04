@@ -3,7 +3,7 @@
 // This file contains the implementations of the main functions to create problems and counterpoints.  
 //
 
-#include "../headers/CounterpointUtils.hpp"
+#include "../../headers/CounterpointProblems/CounterpointUtils.hpp"
 
 
 Part* create_counterpoint(Home home, int species, int nMeasures, vector<int> cantusFirmus, int lowerBound, int upperBound, Stratum* low,

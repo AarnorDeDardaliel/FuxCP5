@@ -40,7 +40,7 @@
 
 #include "../headers/Utilities.hpp"
 #include "../headers/Midi.hpp"
-#include "../headers/CounterpointUtils.hpp"
+#include "../headers/CounterpointProblems/CounterpointUtils.hpp"
 #include "../headers/CounterpointProblems/CounterpointProblem.hpp"
 #include "../headers/CounterpointProblems/TwoVoiceCounterpoint.hpp"
 #include "../headers/CounterpointProblems/ThreeVoiceCounterpoint.hpp"

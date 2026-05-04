@@ -6,15 +6,15 @@
 #ifndef COUNTERPOINTUTILS_HPP
 #define COUNTERPOINTUTILS_HPP
 
-#include "Utilities.hpp"
-#include "CounterpointProblems/TwoVoiceCounterpoint.hpp"
-#include "CounterpointProblems/ThreeVoiceCounterpoint.hpp"
-#include "CounterpointProblems/FourVoiceCounterpoint.hpp"
-#include "Parts/FirstSpeciesCounterpoint.hpp"
-#include "Parts/SecondSpeciesCounterpoint.hpp"
-#include "Parts/ThirdSpeciesCounterpoint.hpp"
-#include "Parts/FourthSpeciesCounterpoint.hpp"
-#include "Parts/FifthSpeciesCounterpoint.hpp"
+#include "../Utilities.hpp"
+#include "TwoVoiceCounterpoint.hpp"
+#include "ThreeVoiceCounterpoint.hpp"
+#include "FourVoiceCounterpoint.hpp"
+#include "../Parts/FirstSpeciesCounterpoint.hpp"
+#include "../Parts/SecondSpeciesCounterpoint.hpp"
+#include "../Parts/ThirdSpeciesCounterpoint.hpp"
+#include "../Parts/FourthSpeciesCounterpoint.hpp"
+#include "../Parts/FifthSpeciesCounterpoint.hpp"
 
 using namespace std;
 using namespace Gecode;

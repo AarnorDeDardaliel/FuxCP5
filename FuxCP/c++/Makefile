@@ -40,7 +40,7 @@ LIBS_MINIMAL = -lgecodekernel -lgecodesearch -lgecodeint \
 
 # === SOURCES PARTAGÉES ===
 SHARED_SOURCES = \
-	src/Utilities.cpp src/Voice.cpp src/Stratum.cpp src/CounterpointUtils.cpp \
+	src/Utilities.cpp src/Voice.cpp src/Stratum.cpp src/CounterpointProblems/CounterpointUtils.cpp \
 	src/ConfigLoader.cpp \
 	src/CounterpointProblems/CounterpointProblem.cpp \
 	src/Parts/Part.cpp \
@@ -53,7 +53,11 @@ SHARED_SOURCES = \
 	src/CounterpointProblems/TwoVoiceCounterpoint.cpp \
 	src/CounterpointProblems/ThreeVoiceCounterpoint.cpp \
 	src/CounterpointProblems/FourVoiceCounterpoint.cpp \
-	src/constraints.cpp
+	src/constraints.cpp \
+	src/Midi.cpp
+
+TEST_SOURCES = \
+	src/Tests/fuxTest.cpp src/Tests/figureTests.cpp
 
 # =============================================================
 # CIBLE PAR DÉFAUT
@@ -97,6 +101,17 @@ compile_generate_counterpoint:
 # Exemple : make generate COMBO="4 1 2 3" CF=2 TIMEOUT=300000 STAGNATION=120000
 generate: compile_generate_counterpoint
 	$(COMPILED_DIR)/Generations $(COMBO) -c $(CF) $(if $(TIMEOUT),-t $(TIMEOUT),) $(if $(STAGNATION),-s $(STAGNATION),)
+
+# =============================================================
+# TESTING SUITES
+# =============================================================
+
+compile_for_debug:
+	@mkdir -p $(COMPILED_DIR)
+	$(CXX) $(CXXFLAGS_DEBUG) src/Tests/main.cpp $(TEST_SOURCES) $(SHARED_SOURCES) -o $(COMPILED_DIR)/Main $(LIBS_MINIMAL)
+
+test: compile_for_debug
+	$(COMPILED_DIR)/Main all
 
 # =============================================================
 # NETTOYAGE

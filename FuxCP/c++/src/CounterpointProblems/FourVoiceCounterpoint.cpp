@@ -3,7 +3,7 @@
 // 
 
 #include "../../headers/CounterpointProblems/FourVoiceCounterpoint.hpp"
-#include "../../headers/CounterpointUtils.hpp"
+#include "../../headers/CounterpointProblems/CounterpointUtils.hpp"
 #include <algorithm>
 
 FourVoiceCounterpoint::FourVoiceCounterpoint(vector<int> cf, vector<Species> sp, vector<int> v_type, vector<int> m_costs, vector<int> g_costs, 
