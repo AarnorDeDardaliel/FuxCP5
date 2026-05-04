@@ -32,6 +32,7 @@ protected:
     CantusFirmus* cantusFirmus;
 
     int nMeasures;      /// the number of measures in the score to generate
+    int n_costs;
     int n_unique_costs;
     Stratum* lowest;
     IntVarArray successiveCostArray;
@@ -57,6 +58,7 @@ protected:
 
     IntVar globalCost;
     ObjectiveMode objectiveMode = OBJECTIVE_LEX;
+    IntVar ponderedGlobalCost;
     // vector<int> species;        /// the species of the counterpoint to generate
 
     IntVarArray combinedCosts;
@@ -90,6 +92,10 @@ public:
      * @param _b a space to constrain the current instance of the Problem class with upon finding a solution
      */
     void constrain(const IntLexMinimizeSpace& _b);
+
+    LinIntExpr getEnhancedMeanCostsSum(IntVarArray costsArray);
+    LinIntExpr getEnhancedPonderedCostsSum(IntVarArray costsArray);
+    LinIntExpr getPonderedCostsSum(IntVarArray costsArray);
 
     IntVarArgs cost() const;
 

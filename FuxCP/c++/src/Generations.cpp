@@ -460,6 +460,7 @@ static BenchOutcome run_bench(CounterpointProblem* problem, GenCase& gc) {
     int iteration = 0;
 
     while (CounterpointProblem* s = e.next()) {
+        stopObj.notifyImprovement();
         iteration++;
         bo.nb_solutions++;
         double now = ms_since();

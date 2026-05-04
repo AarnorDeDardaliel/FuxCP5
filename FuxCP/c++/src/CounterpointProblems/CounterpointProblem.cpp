@@ -40,6 +40,7 @@ CounterpointProblem::CounterpointProblem(vector<int> cf, int v_type, vector<int>
     }
 
     globalCost = IntVar(*this, 0, 2000000);             //contains the global cost
+    ponderedGlobalCost = IntVar(*this, 0, 2000000);     //contains the pondered global cost
 
     writeToLogFile("counterpointproblem constructor"); 
 
@@ -127,6 +128,7 @@ CounterpointProblem::CounterpointProblem(CounterpointProblem& s) : IntLexMinimiz
     }
     globalCost.update(*this, s.globalCost);
     objectiveMode = s.objectiveMode;
+    ponderedGlobalCost.update(*this, s.ponderedGlobalCost);
 
     hasRelaxation = s.hasRelaxation;
     problemRelaxationCosts.update(*this, s.problemRelaxationCosts);
@@ -146,9 +148,49 @@ void CounterpointProblem::constrain(const IntLexMinimizeSpace& _b){
     
 }
 
+LinIntExpr CounterpointProblem::getEnhancedMeanCostsSum(IntVarArray costsArray){
+
+    int nCosts = costsArray.size();
+
+    // Use the worst cost as additionnal cost
+    IntVar biggest(*this, 0, 1000000);
+    rel(*this, biggest, IRT_EQ, expr(*this, max(costsArray)));
+
+    IntVar enhancedSum(*this, 0, 1000000);
+    rel(*this, enhancedSum, IRT_EQ, expr(*this, sum(costsArray + biggest)));
+    return enhancedSum;
+}
+
+LinIntExpr CounterpointProblem::getEnhancedPonderedCostsSum(IntVarArray costsArray){
+
+    int nCosts = costsArray.size();
+    IntArgs coeffs(nCosts+1);
+    coeffs[nCosts] = 200; // last is for biggest
+    for (int i = 0; i < nCosts; ++i) coeffs[i] = 100 - i*80/nCosts; // First has weight 100, last has weight 80
+
+    // Use the worst cost as additionnal cost
+    IntVar biggest(*this, 0, 1000000);
+    rel(*this, biggest, IRT_EQ, expr(*this, max(costsArray)));
+
+    IntVar sumWeighted(*this, 0, 1000000);
+    linear(*this, coeffs, costsArray + biggest, IRT_EQ, sumWeighted);
+    return sumWeighted;
+}
+
+LinIntExpr CounterpointProblem::getPonderedCostsSum(IntVarArray costsArray){
+
+    int nCosts = costsArray.size();
+    IntArgs coeffs(nCosts);
+    for (int i = 0; i < nCosts; ++i) coeffs[i] = 100 - i*80/nCosts; // First has weight 100, last has weight 20
+
+    IntVar sumWeighted(*this, 0, 1000000);
+    linear(*this, coeffs, costsArray, IRT_EQ, sumWeighted);
+    return sumWeighted;
+}
+
 IntVarArgs CounterpointProblem::cost() const{
 
-    return IntVarArgs(finalCosts);
+    return IntVarArgs(ponderedGlobalCost + finalCosts);
 
 }
 
@@ -280,6 +322,10 @@ void CounterpointProblem::orderCosts(){
         }
         finalCosts = newFinalCosts;
     }
+
+    //globalCost is the sum of all the finalCosts
+    rel(*this, globalCost, IRT_EQ, expr(*this, sum(finalCosts)));
+    rel(*this, ponderedGlobalCost, IRT_EQ, expr(*this, getPonderedCostsSum(finalCosts)));
 }
 
 

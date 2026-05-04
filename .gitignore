@@ -30,6 +30,7 @@
 *.exe
 *.out
 *.app
+*.py
 
 # Main
 FuxCP/c++/Main
@@ -54,3 +55,6 @@ FuxCP/results/
 Latex/results/
 results/
 Latex/
+
+# Accept all src files
+!FuxCP/c++/src/**
