@@ -53,11 +53,10 @@ SHARED_SOURCES = \
 	src/CounterpointProblems/TwoVoiceCounterpoint.cpp \
 	src/CounterpointProblems/ThreeVoiceCounterpoint.cpp \
 	src/CounterpointProblems/FourVoiceCounterpoint.cpp \
-	src/constraints.cpp \
-	src/Midi.cpp
+	src/constraints.cpp
 
 TEST_SOURCES = \
-	src/Tests/fuxTest.cpp src/Tests/figureTests.cpp
+	src/Tests/fuxTest.cpp src/Tests/figureTests.cpp src/Midi.cpp
 
 # =============================================================
 # CIBLE PAR DÉFAUT
