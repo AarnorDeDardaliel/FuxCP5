@@ -144,7 +144,11 @@ void P3_1_noBattuta(Home home, Part* part);
 
 void P3_2_noBattuta(Home home, Part* part);
 
-void P4_successiveCost(Home home, vector<Part*> parts, int scc_cz, IntVarArray successiveCostArray, vector<Species> species);
+void P4_successiveCost(Home home, vector<Part*> parts, IntVarArray successiveCostArray);
+
+void P4_1_noSuccessiveSamePerfectInterval(Home home, std::vector<Part*> parts);
+
+void P4_2_noSimultaneousRepetition(Home home, std::vector<Part*> parts);
 
 void P6_3v_noMoveInSameDirection(Home home, vector<Part*> parts);
 

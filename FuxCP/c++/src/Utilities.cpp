@@ -447,3 +447,25 @@ void writeToLogFile(const char* message){ // TODO : TO ACTIVATE LOGGING, UNCOOMM
     //     }
     // }
 }
+
+
+/* ================================================
+ *         CONSTRAINT HELPERS
+ * ================================================
+ */
+
+IntVarArray expandCantusNotes(Home home, IntVarArray cantus){
+    IntVarArray expandedCantus = IntVarArray(home, 4*cantus.size()-3, 0, 127);
+    for (int i = 0; i < expandedCantus.size(); i++){
+        expandedCantus[i] = cantus[i/4];
+    }
+    return expandedCantus;
+}
+
+vector<int> createRangeVector(int from, int to, int multiplier) {
+    vector<int> indices;
+    for (int i = from; i < to; i++) {
+        indices.push_back(i*multiplier);
+    }
+    return indices;
+}

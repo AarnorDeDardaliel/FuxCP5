@@ -653,4 +653,12 @@ void write_to_log_file(const char *message, const string& filename);
 void writeToLogFile(const char* message);
 
 
+/* ================================================
+ *         CONSTRAINT HELPERS
+ * ================================================
+ */
+
+IntVarArray expandCantusNotes(Home home, IntVarArray cantus);
+vector<int> createRangeVector(int from, int to, int multiplier);
+
 #endif

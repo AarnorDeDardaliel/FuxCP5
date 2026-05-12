@@ -70,9 +70,11 @@ FourVoiceCounterpoint::FourVoiceCounterpoint(vector<int> cf, vector<Species> sp,
     
     //P4 avoid successive perfect consonances
     if (activeConstraints[V4_1P4]) {
-        P4_successiveCost(*this, parts, scc_cz, successiveCostArray, species);
+        P4_successiveCost(*this, parts, successiveCostArray);
     }
     
+    P4_1_noSuccessiveSamePerfectInterval(*this, parts);
+    P4_2_noSimultaneousRepetition(*this, parts);
     
     //P6 : no move in same direction
     if (activeConstraints[V4_1P6]) {

@@ -585,7 +585,8 @@ static int execute_gen_case(GenCase& gc, const vector<int>& sp_input) {
              << " Améliorations=" << bo.nb_improvements
              << " " << cost_label(gc.obj_mode) << "=" << bo.best_cost
              << " Temps=" << fixed << setprecision(0) << bo.ms_total << "ms"
-             << " (" << bo.termination << ")" << endl;
+             << " (" << bo.termination << ")" << "\n"
+             << "  -> Best = " << int_vector_to_string(bo.solution) << endl;
     } else {
         write_error_txt(txt_dir + "/error_" + species_tag + ".txt", gc, sp_input, bo);
         cout << "  -> AUCUNE SOLUTION (" << bo.termination << ", "
@@ -603,8 +604,8 @@ struct CliArgs {
     vector<int> sp_input;          // espèces des voix de contrepoint
     int    cf_id         = 1;
     string preset_name   = "default";
-    int    timeout_ms    = 300000;
-    int    stagnation_ms = 120000;
+    int    timeout_ms    = 300000; // 5min
+    int    stagnation_ms = 120000; // 2min
     string output_root   = "../../results";
     string output_subdir = "";
     ObjectiveMode obj_mode = OBJECTIVE_LEX;

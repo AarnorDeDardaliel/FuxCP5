@@ -99,7 +99,7 @@ compile_generate_counterpoint:
 # Exemple : make generate COMBO="2 1"
 # Exemple : make generate COMBO="4 1 2 3" CF=2 TIMEOUT=300000 STAGNATION=120000
 generate: compile_generate_counterpoint
-	$(COMPILED_DIR)/Generations $(COMBO) -c $(CF) $(if $(TIMEOUT),-t $(TIMEOUT),) $(if $(STAGNATION),-s $(STAGNATION),)
+	$(COMPILED_DIR)/Generations $(COMBO) -c $(CF) $(if $(TIMEOUT),-t $(TIMEOUT),) $(if $(STAGNATION),-s $(STAGNATION),) $(if $(VTYPE),-v $(VTYPE),) $(if $(PRESET),--preset $(PRESET),)
 
 # =============================================================
 # TESTING SUITES

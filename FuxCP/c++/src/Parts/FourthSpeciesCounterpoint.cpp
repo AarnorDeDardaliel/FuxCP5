@@ -32,6 +32,10 @@ FourthSpeciesCounterpoint::FourthSpeciesCounterpoint(Home home, int nMes, vector
     if(borrowMode==1){
         fourthSpeciesNotesCp[fourthSpeciesNotesCp.size()-2] = IntVar(home, IntSet(IntArgs(vector_intersection(cp_range, chromatic_scale))));
     }
+    int i;
+    for (i=0; i<fourthSpeciesNotesCp.size()-3; i+=2){// 4th species basics lol
+        rel(home, fourthSpeciesNotesCp[i], IRT_EQ, fourthSpeciesNotesCp[i+1]);
+    }
     
     sol = IntVarArray(home, fourthSpeciesNotesCp.slice(0,1,fourthSpeciesNotesCp.size()));
 
@@ -181,7 +185,6 @@ FourthSpeciesCounterpoint::FourthSpeciesCounterpoint(Home home, int nMes, vector
     
         }
     }
-    
 
     //4.H1 : arsis harmonies must be consonant (could be the reason for 3 / 4 voice bugs)
     if (activeConstraints[SP4_4H1]) {

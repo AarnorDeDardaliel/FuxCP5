@@ -77,9 +77,12 @@ ThreeVoiceCounterpoint::ThreeVoiceCounterpoint(vector<int> cf, vector<Species> s
 
     //P4 avoid successive perfect consonances
     if (activeConstraints[V3_1P4]) {
-        P4_successiveCost(*this, parts, scc_cz, successiveCostArray, species);
+        P4_successiveCost(*this, parts, successiveCostArray);
     }
     
+    P4_1_noSuccessiveSamePerfectInterval(*this, parts);
+    P4_2_noSimultaneousRepetition(*this, parts);
+
     //P6 : no move in same direction
     if (activeConstraints[V3_1P6]) {
         P6_3v_noMoveInSameDirection(*this, parts);
