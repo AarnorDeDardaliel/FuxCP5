@@ -98,13 +98,20 @@ static void addVoiceEvents(std::vector<MidiEvent>& events,
 
     if (species == FOURTH_SPECIES && notes.size() > 1) {
         size_t i;
-        for (i = 0; i < notes.size() - 1; ++i) {
-            uint32_t start = i * cpDur + cpDur / 2;
+        uint32_t start;
+        for (i = 0; i < notes.size() - 2; ++i) {
+            start = i * cpDur + cpDur / 2;
             events.push_back({start, noteOn, (uint8_t)notes[i], velocity});
             events.push_back({start + cpDur, noteOff, (uint8_t)notes[i], 0});
         }
+        // Avant-dernière note plus courte
+        start = i * cpDur + cpDur / 2;
+        events.push_back({start, noteOn, (uint8_t)notes[i], velocity});
+        events.push_back({start + cpDur/2, noteOff, (uint8_t)notes[i], 0});
+        i++;
+
         // Dernière note sans décalage
-        uint32_t start = i * cpDur;
+        start = i * cpDur;
         events.push_back({start, noteOn, (uint8_t)notes[i], velocity});
         events.push_back({start + cpDur, noteOff, (uint8_t)notes[i], 0});
     } else {
@@ -202,27 +209,4 @@ void saveMidi(const std::string& filename,
     addVoiceEvents(tracks[1], raw_solution, species, 1, 80, rondeDur);
 
     writeMidiFile(filename, tracks, PPQ);
-}
-
-
-
-void saveMidiGeneral(const std::string& filename,
-                        const std::vector<int>& cantusFirmus,
-                        const std::vector<int>& raw_solution,
-                        const std::vector<Species>& spList){
-
-    vector<pair<vector<int>, Species>> voices;
-
-    int n_counterpoints = spList.size();
-    int cf_size = cantusFirmus.size();
-    int offset = 0;
-    for (int voice = 0; voice < n_counterpoints; ++voice) {
-        Species species = spList.at(voice);
-        int sz = branchingNotesSize(species, cf_size);
-        vector<int> voice_notes(raw_solution.begin() + offset, raw_solution.begin() + offset + sz);
-        voices.push_back({voice_notes, species});
-        offset += sz;
-    }
-
-    saveMidiMultiVoice(filename, cantusFirmus, voices);
 }

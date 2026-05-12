@@ -39,11 +39,6 @@ void saveMidi(const std::string& filename,
 void saveMidiMultiVoice(const std::string& filename,
                         const std::vector<int>& cantusFirmus,
                         const std::vector<std::pair<std::vector<int>, Species>>& voices);
-
-
-void saveMidiGeneral(const std::string& filename,
-                        const std::vector<int>& cantusFirmus,
-                        const std::vector<int>& raw_solution,
-                        const std::vector<Species>& spList);
+                        
 
 #endif
