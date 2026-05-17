@@ -20,7 +20,8 @@ enum {
 enum ObjectiveMode {
     OBJECTIVE_LEX,   // ordre lexicographique (actuel)
     OBJECTIVE_TOTAL, // somme globale des coûts
-    OBJECTIVE_MIXED  // mix somme + priorité lexicographique pondérée
+    OBJECTIVE_MIXED,  // mix somme globale + priorité lexicographique pondérée
+    OBJECTIVE_PONDERED // somme lexicographique pondérée
 };
 
 
@@ -58,7 +59,7 @@ protected:
 
     IntVar globalCost;
     ObjectiveMode objectiveMode = OBJECTIVE_LEX;
-    IntVar ponderedGlobalCost;
+    IntVar objectiveCostSum;
     // vector<int> species;        /// the species of the counterpoint to generate
 
     IntVarArray combinedCosts;

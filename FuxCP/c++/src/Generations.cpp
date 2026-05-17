@@ -149,6 +149,7 @@ static const char* obj_mode_label(ObjectiveMode m) {
     switch (m) {
         case OBJECTIVE_TOTAL: return "total (somme globale)";
         case OBJECTIVE_MIXED: return "mixed (somme + score lex pond\u00e9r\u00e9)";
+        case OBJECTIVE_PONDERED: return "pond (score lex pond\u00e9r\u00e9)";
         default:              return "lex (lexicographique par priorit\u00e9)";
     }
 }
@@ -156,6 +157,7 @@ static const char* obj_mode_short(ObjectiveMode m) {
     switch (m) {
         case OBJECTIVE_TOTAL: return "total";
         case OBJECTIVE_MIXED: return "mixed";
+        case OBJECTIVE_PONDERED: return "pond";
         default:              return "lex";
     }
 }
@@ -163,6 +165,7 @@ static const char* cost_label(ObjectiveMode m) {
     switch (m) {
         case OBJECTIVE_TOTAL: return "Co\u00fbt total";
         case OBJECTIVE_MIXED: return "Score mixte";
+        case OBJECTIVE_PONDERED: return "Score pondéré";
         default:              return "Somme lex (indic.)";
     }
 }
@@ -170,6 +173,7 @@ static const char* cost_label(ObjectiveMode m) {
 static ObjectiveMode parse_obj_mode(const string& s) {
     if (s == "total") return OBJECTIVE_TOTAL;
     if (s == "mixed") return OBJECTIVE_MIXED;
+    if (s == "pond") return OBJECTIVE_PONDERED;
     return OBJECTIVE_LEX;
 }
 
@@ -469,7 +473,7 @@ static BenchOutcome run_bench(CounterpointProblem* problem, GenCase& gc) {
 
         // Trace live : on voit l'évolution des coûts en suivant le log.
         // En mode lex on affiche le vecteur complet (le plus parlant) ;
-        // en mode total/mixed on affiche le scalaire optimisé directement.
+        // en mode total/mixed/pond on affiche le scalaire optimisé directement.
         if (gc.obj_mode == OBJECTIVE_LEX) {
             cout << "  [Sol " << bo.nb_solutions
                  << " | t=" << fixed << setprecision(0) << now << "ms"
@@ -608,7 +612,7 @@ struct CliArgs {
     int    stagnation_ms = 120000; // 2min
     string output_root   = "../../results";
     string output_subdir = "";
-    ObjectiveMode obj_mode = OBJECTIVE_LEX;
+    ObjectiveMode obj_mode = OBJECTIVE_PONDERED;
     vector<int> v_types_override;
 
     string campaign_id;
@@ -626,7 +630,7 @@ static void print_usage() {
          << "  -s stagnation_ms    arrêt si pas d'amélioration depuis N ms (0 = off)\n"
          << "  -o output_root      racine des résultats (défaut ../results)\n"
          << "  --subdir NAME       sous-dossier sous output_root\n"
-         << "  -m lex|total|mixed  mode d'objectif\n"
+         << "  -m lex|total|mixed|pond  mode d'objectif\n"
          << "  -v vt1,vt2,...      v_types des voix de contrepoint\n";
 }
 

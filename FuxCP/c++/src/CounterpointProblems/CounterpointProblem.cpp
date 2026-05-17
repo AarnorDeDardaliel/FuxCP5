@@ -40,7 +40,7 @@ CounterpointProblem::CounterpointProblem(vector<int> cf, int v_type, vector<int>
     }
 
     globalCost = IntVar(*this, 0, 2000000);             //contains the global cost
-    ponderedGlobalCost = IntVar(*this, 0, 2000000);     //contains the pondered global cost
+    objectiveCostSum = IntVar(*this, 0, 2000000);          //contains the costs sum to use with the objectiveMode options
 
     writeToLogFile("counterpointproblem constructor"); 
 
@@ -128,7 +128,7 @@ CounterpointProblem::CounterpointProblem(CounterpointProblem& s) : IntLexMinimiz
     }
     globalCost.update(*this, s.globalCost);
     objectiveMode = s.objectiveMode;
-    ponderedGlobalCost.update(*this, s.ponderedGlobalCost);
+    objectiveCostSum.update(*this, s.objectiveCostSum);
 
     hasRelaxation = s.hasRelaxation;
     problemRelaxationCosts.update(*this, s.problemRelaxationCosts);
@@ -148,50 +148,21 @@ void CounterpointProblem::constrain(const IntLexMinimizeSpace& _b){
     
 }
 
-LinIntExpr CounterpointProblem::getEnhancedMeanCostsSum(IntVarArray costsArray){
-
-    int nCosts = costsArray.size();
-
-    // Use the worst cost as additionnal cost
-    IntVar biggest(*this, 0, 1000000);
-    rel(*this, biggest, IRT_EQ, expr(*this, max(costsArray)));
-
-    IntVar enhancedSum(*this, 0, 1000000);
-    rel(*this, enhancedSum, IRT_EQ, expr(*this, sum(costsArray + biggest)));
-    return enhancedSum;
-}
-
-LinIntExpr CounterpointProblem::getEnhancedPonderedCostsSum(IntVarArray costsArray){
-
-    int nCosts = costsArray.size();
-    IntArgs coeffs(nCosts+1);
-    coeffs[nCosts] = 200; // last is for biggest
-    for (int i = 0; i < nCosts; ++i) coeffs[i] = 100 - i*80/nCosts; // First has weight 100, last has weight 80
-
-    // Use the worst cost as additionnal cost
-    IntVar biggest(*this, 0, 1000000);
-    rel(*this, biggest, IRT_EQ, expr(*this, max(costsArray)));
-
-    IntVar sumWeighted(*this, 0, 1000000);
-    linear(*this, coeffs, costsArray + biggest, IRT_EQ, sumWeighted);
-    return sumWeighted;
-}
-
-LinIntExpr CounterpointProblem::getPonderedCostsSum(IntVarArray costsArray){
-
-    int nCosts = costsArray.size();
-    IntArgs coeffs(nCosts);
-    for (int i = 0; i < nCosts; ++i) coeffs[i] = 100 - i*80/nCosts; // First has weight 100, last has weight 20
-
-    IntVar sumWeighted(*this, 0, 1000000);
-    linear(*this, coeffs, costsArray, IRT_EQ, sumWeighted);
-    return sumWeighted;
-}
-
 IntVarArgs CounterpointProblem::cost() const{
+    IntVarArgs baseCosts = IntVarArgs(finalCosts);
+    
+    // If relaxation costs exist, prepend totalRelaxationCost as highest priority
+    if(hasRelaxation){
+        baseCosts = totalRelaxationCost + finalCosts;
+    }
+    
+    if (objectiveMode != OBJECTIVE_LEX) {
+        return IntVarArgs(objectiveCostSum + baseCosts);
+    }
+    
+    
 
-    return IntVarArgs(ponderedGlobalCost + finalCosts);
-
+    return baseCosts;
 }
 
 string CounterpointProblem::to_string() const {
@@ -273,21 +244,13 @@ void CounterpointProblem::orderCosts(){
         //(this eliminates all the <not assigned> values of the intvararray for costs which are not set)
         rel(*this, finalCosts[i], IRT_EQ, orderedFactors[i]);
     }
-
-    // globalCost = somme des coûts musicaux originaux (lexicographiques).
-    // Doit être posé AVANT toute réassignation de finalCosts pour TOTAL/MIXED,
-    // sinon on cree un cycle (mixCost = globalCost + lexScore puis
-    //  globalCost = sum(finalCosts) = mixCost => lexScore = 0).
-    rel(*this, globalCost, IRT_EQ, expr(*this, sum(finalCosts)));
-
+    
     // Adapte l'objectif (la cible de minimisation BAB) selon le mode demandé.
-    // globalCost reste figé sur les coûts musicaux originaux pour le reporting.
+    // objectiveCostSum est automatiquement ajouté en premier élément si objectiveMode != 0
     if (objectiveMode == OBJECTIVE_TOTAL) {
-        IntVarArray totalCosts(*this, 1, 0, 2000000);
-        rel(*this, totalCosts[0], IRT_EQ, globalCost);
-        finalCosts = totalCosts;
-    } else if (objectiveMode == OBJECTIVE_MIXED) {
-        // Score lexicographique pondéré (priorités fortes avec poids plus élevés)
+        rel(*this, objectiveCostSum, IRT_EQ, globalCost);
+    } 
+    else if (objectiveMode == OBJECTIVE_MIXED) {
         IntVarArgs lexArgs(n_unique_costs);
         IntArgs weights(n_unique_costs);
         for(int i = 0; i < n_unique_costs; i++){
@@ -304,28 +267,17 @@ void CounterpointProblem::orderCosts(){
         IntVarArgs mixVars(2);
         mixVars[0] = globalCost;
         mixVars[1] = lexScore;
-        linear(*this, mixWeights, mixVars, IRT_EQ, mixCost);
+        linear(*this, mixWeights, mixVars, IRT_EQ, objectiveCostSum);
+    } 
+    else if (objectiveMode == OBJECTIVE_PONDERED) {
+        int nCosts = finalCosts.size();
+        IntArgs coeffs(nCosts);
+        for (int i = 0; i < nCosts; ++i) coeffs[i] = 100 - i*80/nCosts; // First has weight 100, last has weight ~20
 
-        IntVarArray mixedCosts(*this, 1, 0, 4000000);
-        rel(*this, mixedCosts[0], IRT_EQ, mixCost);
-        finalCosts = mixedCosts;
+        linear(*this, coeffs, finalCosts, IRT_EQ, objectiveCostSum);
     }
 
-    // If relaxation costs exist, prepend totalRelaxationCost as highest priority
-    if(hasRelaxation){
-        IntVarArray newFinalCosts(*this, finalCosts.size() + 1, 0, 1000000);
-        // First element: relaxation cost (highest lex priority)
-        rel(*this, newFinalCosts[0], IRT_EQ, totalRelaxationCost);
-        // Rest: original costs
-        for(int i = 0; i < finalCosts.size(); i++){
-            rel(*this, newFinalCosts[i+1], IRT_EQ, finalCosts[i]);
-        }
-        finalCosts = newFinalCosts;
-    }
-
-    //globalCost is the sum of all the finalCosts
     rel(*this, globalCost, IRT_EQ, expr(*this, sum(finalCosts)));
-    rel(*this, ponderedGlobalCost, IRT_EQ, expr(*this, getPonderedCostsSum(finalCosts)));
 }
 
 
