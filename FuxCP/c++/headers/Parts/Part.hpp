@@ -7,9 +7,9 @@
 #define FUXCP_BASE_COUNTERPOINT_HPP
 
 #include "../Utilities.hpp"
-#include "../Voice.hpp"
-#include "../Stratum.hpp"
-#include "../constraints.hpp"
+#include "Voice.hpp"
+#include "Stratum.hpp"
+#include "constraints.hpp"
 
 #include "gecode/kernel.hh"
 #include "gecode/int.hh"

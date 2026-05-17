@@ -5,7 +5,7 @@
 #ifndef STRATUM_HPP
 #define STRATUM_HPP
 
-#include "Utilities.hpp"
+#include "../Utilities.hpp"
 #include "Voice.hpp"
 
 #include "gecode/kernel.hh"

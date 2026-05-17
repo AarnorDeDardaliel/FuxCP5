@@ -3,7 +3,7 @@
 // This file contains the implementations of the functions that post the constraints.  
 //
 
-#include "../headers/constraints.hpp"
+#include "../../headers/Parts/constraints.hpp"
 
 void initializeIsOffArray(Home home, Part* part){
     for(int i = 0; i < part->getIsOffArray().size(); i++){                              //loop goes through every note of the counterpoint
@@ -611,7 +611,10 @@ void P4_successiveCost(Home home, vector<Part*> parts, IntVarArray successiveCos
     }
 }
 
-vector<int> developBeatIndices(vector<int> old_indices){
+/*
+ *
+ */
+vector<int> addArsisToThesisIndices(vector<int> old_indices){
     vector<int> new_indices;
     int n_old = old_indices.size();
 
@@ -682,11 +685,11 @@ void P4_1_noSuccessiveSamePerfectInterval(Home home, vector<Part*> parts) {
             Part* p2 = parts[v2];
 
             // ----- successive beats -----
-            vector<int> beatIndices = createRangeVector(0, p1->getNMeasures(), 4);
-            noSuccessiveSamePerfectInterval(home, p1, p2, beatIndices);
+            vector<int> thesisIndices = createRangeVector(0, p1->getNMeasures(), 4);
+            noSuccessiveSamePerfectInterval(home, p1, p2, thesisIndices);
 
             // Thesis vs arsis beats
-            beatIndices = developBeatIndices(beatIndices);
+            vector<int> beatIndices = addArsisToThesisIndices(thesisIndices);
             noSuccessiveSamePerfectInterval(home, p1, p2, beatIndices);
 
             // ----- successive notes -----
@@ -743,8 +746,8 @@ void P4_2_noSimultaneousRepetition(Home home, vector<Part*> parts) {
             Part* p2 = parts[v2];
 
             // ----- successive beats -----
-            vector<int> beatIndices = createRangeVector(0, p1->getNMeasures(), 4);
-            noSimultaneousRepetitionOnIndices(home, p1, p2, beatIndices);
+            vector<int> thesisIndices = createRangeVector(0, p1->getNMeasures(), 4);
+            noSimultaneousRepetitionOnIndices(home, p1, p2, thesisIndices);
 
             // ----- successive notes -----
             vector<int> noteIndices = getSuccessiveNotesIndices(p1,p2);

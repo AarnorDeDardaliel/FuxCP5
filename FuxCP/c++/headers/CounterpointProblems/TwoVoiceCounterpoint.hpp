@@ -11,7 +11,6 @@
 #include "../Parts/FirstSpeciesCounterpoint.hpp"
 #include "../Parts/SecondSpeciesCounterpoint.hpp"
 #include "../Parts/CantusFirmus.hpp"
-#include "../constraints.hpp"
 
 /**
  * This class models a counterpoint problem with 2 voices.

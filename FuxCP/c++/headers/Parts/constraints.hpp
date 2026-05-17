@@ -8,7 +8,7 @@
 
 class Part;
 
-#include "Parts/Part.hpp"
+#include "Part.hpp"
 
 /* ================================================
  *              GENERAL CONSTRAINTS
