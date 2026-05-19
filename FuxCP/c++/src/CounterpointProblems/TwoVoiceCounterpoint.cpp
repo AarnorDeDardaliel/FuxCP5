@@ -78,8 +78,15 @@ TwoVoiceCounterpoint::TwoVoiceCounterpoint(vector<int> cf, Species sp, int v_typ
             (expr(*this, abs(cantusFirmus->getFirstHInterval()[cantusFirmus->getFirstHInterval().size()-2])) == MINOR_THIRD));
     }
 
-    P4_1_noSuccessiveSamePerfectInterval(*this, parts);
-    P4_2_noSimultaneousRepetition(*this, parts);
+    // P8 from Karim : successive fifths and successive octave / unissons are forbidden
+    if (activeConstraints[V2_1P8]) {
+        P8_noSuccessiveSamePerfectInterval(*this, parts);
+    }
+
+    // P9 from Karim : simultaneous repetitions between two voices are forbidden
+    if (activeConstraints[V2_1P9]) {
+        P9_noSimultaneousRepetition(*this, parts);
+    }
 
     setStrata();
 

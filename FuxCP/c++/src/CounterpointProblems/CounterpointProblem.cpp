@@ -159,9 +159,6 @@ IntVarArgs CounterpointProblem::cost() const{
     if (objectiveMode != OBJECTIVE_LEX) {
         return IntVarArgs(objectiveCostSum + baseCosts);
     }
-    
-    
-
     return baseCosts;
 }
 
@@ -247,8 +244,12 @@ void CounterpointProblem::orderCosts(){
     
     // Adapte l'objectif (la cible de minimisation BAB) selon le mode demandé.
     // objectiveCostSum est automatiquement ajouté en premier élément si objectiveMode != 0
-    if (objectiveMode == OBJECTIVE_TOTAL) {
-        rel(*this, objectiveCostSum, IRT_EQ, globalCost);
+    if (objectiveMode == OBJECTIVE_PONDERED) {
+        int nCosts = finalCosts.size();
+        IntArgs coeffs(nCosts);
+        for (int i = 0; i < nCosts; ++i) coeffs[i] = 100 - i*80/nCosts; // First has weight 100, last has weight ~20
+
+        linear(*this, coeffs, finalCosts, IRT_EQ, objectiveCostSum);
     } 
     else if (objectiveMode == OBJECTIVE_MIXED) {
         IntVarArgs lexArgs(n_unique_costs);
@@ -269,12 +270,8 @@ void CounterpointProblem::orderCosts(){
         mixVars[1] = lexScore;
         linear(*this, mixWeights, mixVars, IRT_EQ, objectiveCostSum);
     } 
-    else if (objectiveMode == OBJECTIVE_PONDERED) {
-        int nCosts = finalCosts.size();
-        IntArgs coeffs(nCosts);
-        for (int i = 0; i < nCosts; ++i) coeffs[i] = 100 - i*80/nCosts; // First has weight 100, last has weight ~20
-
-        linear(*this, coeffs, finalCosts, IRT_EQ, objectiveCostSum);
+    else { // objectiveMode == OBJECTIVE_TOTAL (or OBJECTIVE_LEX, for consistency)
+        rel(*this, objectiveCostSum, IRT_EQ, globalCost);
     }
 
     rel(*this, globalCost, IRT_EQ, expr(*this, sum(finalCosts)));

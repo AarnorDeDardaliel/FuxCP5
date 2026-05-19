@@ -405,6 +405,16 @@ void P1_1_2v_noDirectMotionFromPerfectConsonance(Home home, Part* part){
     }
 }
 
+void P1_1_3v_noDirectMotionFromPerfectConsonance(Home home, Part* part){
+    for(int j = 0; j < part->getFirstSpeciesMotions().size()-1; j++){
+        //set a cost when it is reached through direct motion, it is 0 when not
+        rel(home, (part->getFirstSpeciesMotions()[j]==2&&(part->getFirstSpeciesHIntervals()[j+1]==0||part->getFirstSpeciesHIntervals()[j+1]==7))>>
+            (part->getDirectCostArray()[j]==part->getDirectCost()));
+        rel(home, (part->getFirstSpeciesMotions()[j]!=2||(part->getFirstSpeciesHIntervals()[j+1]!=0&&part->getFirstSpeciesHIntervals()[j+1]!=7))>>
+            (part->getDirectCostArray()[j]==0));
+    }
+}
+
 void P1_1_4v_noDirectMotionFromPerfectConsonance(Home home, Part* part){
     for(int j = 0; j < part->getFirstSpeciesMotions().size()-1; j++){
 
@@ -573,20 +583,15 @@ void P4_successiveCost(Home home, vector<Part*> parts, IntVarArray successiveCos
                 rel(home, expr(home, hIntervals12[i] == UNISSON), BOT_OR, expr(home, hIntervals12[i] == PERFECT_FIFTH), isPCons12[i]);
             }
 
-            if (!p1Second && !p2Second && !p1Fourth && !p2Fourth) {
-                for (int i = 0; i < isPCons12.size()-1; i++) {
-                    BoolVar successivePerfect(home, 0, 1);
-                    rel(home, isPCons12[i], BOT_AND, isPCons12[i+1], successivePerfect);
-                    setCostFromBool(home, successivePerfect, successiveCostArray[idx], p1->getSuccCost());
-                    idx++;
+            // ----- Applying constrains -----
+            if (p1Second || p2Second){
+                if (p1Second) { // Second species has priorities because it has an exception
+                    applySecondSpeciesSuccessiveCost(home, p1, hIntervals12, isPCons12, successiveCostArray, idx, p1->getSuccCost());
                 }
-            }
-            else if (p1Second) { // Second species has priorities because it has an exception
-                applySecondSpeciesSuccessiveCost(home, p1, hIntervals12, isPCons12, successiveCostArray, idx, p1->getSuccCost());
-            }
-            else if (p2Second) {
-                applySecondSpeciesSuccessiveCost(home, p2, hIntervals12, isPCons12, successiveCostArray, idx, p1->getSuccCost());
-            }
+                if (p2Second) {
+                    applySecondSpeciesSuccessiveCost(home, p2, hIntervals12, isPCons12, successiveCostArray, idx, p1->getSuccCost());
+                }
+            }            
             else if (p1Fourth || p2Fourth) {
                 for (int i = 0; i < hIntervals12.size()-1; i++) {
                     BoolVar firstNotFifth(home, 0, 1);
@@ -606,152 +611,14 @@ void P4_successiveCost(Home home, vector<Part*> parts, IntVarArray successiveCos
                     setCostFromBool(home, successivePerfectNotFifths, successiveCostArray[idx], p1->getSuccCost());
                     idx++;
                 }
+            } else {
+                for (int i = 0; i < isPCons12.size()-1; i++) {
+                    BoolVar successivePerfect(home, 0, 1);
+                    rel(home, isPCons12[i], BOT_AND, isPCons12[i+1], successivePerfect);
+                    setCostFromBool(home, successivePerfect, successiveCostArray[idx], p1->getSuccCost());
+                    idx++;
+                }
             }
-        }
-    }
-}
-
-/*
- *
- */
-vector<int> addArsisToThesisIndices(vector<int> old_indices){
-    vector<int> new_indices;
-    int n_old = old_indices.size();
-
-    for (int i = 0; i < n_old-1; i++) {
-        new_indices.push_back(old_indices[i]);
-        new_indices.push_back(old_indices[i]+2);
-    }
-    new_indices.push_back(old_indices[n_old-1]);
-
-    return new_indices;
-}
-
-vector<int> getSuccessiveNotesIndices(Part* p1, Part* p2) {
-    bool p1Third = p1->getSpecies() == THIRD_SPECIES;
-    bool p2Third = p2->getSpecies() == THIRD_SPECIES;
-    bool p1Fourth = p1->getSpecies() == FOURTH_SPECIES;
-    bool p2Fourth = p2->getSpecies() == FOURTH_SPECIES;
-
-    // If no 3d species, already taken care of in arsis or thesis
-    // If 4th species, doesn't really have sense
-    if ((!p1Third && !p2Third) || p1Fourth || p2Fourth){ return {}; }
-
-    // If 3d, then compare every successive note
-    const int nMeasures = p1->getNMeasures();
-    return createRangeVector(0, nMeasures*4-3, 1);
-}
-
-void noSuccessiveSamePerfectInterval(Home home, Part* p1, Part* p2, vector<int>& indices) {
-    int nIndices = indices.size();
-    bool p1Fourth = p1->getSpecies() == FOURTH_SPECIES;
-    bool p2Fourth = p2->getSpecies() == FOURTH_SPECIES;
-
-    IntVarArray notes1 = p1->getNotes();
-    IntVarArray notes2 = p2->getNotes();
-    if (notes1.size() != notes2.size()){ // p1 is cantus firmus
-        notes1 = expandCantusNotes(home, notes1);
-    }
-
-    // Building intervals array
-    IntVarArray hIntervals12(home, nIndices, 0, MAJOR_SEVENTH);
-    if (p1Fourth || p2Fourth) {
-        // For fourth species, compare the syncopated note (index +2) with the
-        // structurally relevant note of the other voice, measure by measure.
-        for (int i = 0; i < nIndices-1; i++) {
-            int idx1 = p1Fourth ? indices[i]+2 : indices[i];
-            int idx2 = p2Fourth ? indices[i]+2 : indices[i];
-            rel(home, hIntervals12[i] == (abs(notes1[idx1] - notes2[idx2]) % 12));
-        }
-        rel(home, hIntervals12[nIndices-1] == (abs(notes1[indices.back()] - notes2[indices.back()]) % 12)); // Final note
-    } else {
-        for (int i = 0; i < nIndices; i++) {
-            int idx = indices[i];
-            rel(home, hIntervals12[i] == (abs(notes1[idx] - notes2[idx]) % 12));
-        }
-    }
-
-    // Constraint
-    for (int i = 0; i < hIntervals12.size()-1; i++) {
-        rel(home, expr(home, hIntervals12[i] == UNISSON), BOT_AND, expr(home, hIntervals12[i+1] == UNISSON), 0); // No successive unisson
-        rel(home, expr(home, hIntervals12[i] == PERFECT_FIFTH), BOT_AND, expr(home, hIntervals12[i+1] == PERFECT_FIFTH), 0); // No successive fifth
-    }
-}
-
-void P4_1_noSuccessiveSamePerfectInterval(Home home, vector<Part*> parts) {
-    for (int v1 = 0; v1 < parts.size(); v1++) {
-        for (int v2 = v1 + 1; v2 < parts.size(); v2++) {
-            Part* p1 = parts[v1];
-            Part* p2 = parts[v2];
-
-            // ----- successive beats -----
-            vector<int> thesisIndices = createRangeVector(0, p1->getNMeasures(), 4);
-            noSuccessiveSamePerfectInterval(home, p1, p2, thesisIndices);
-
-            // Thesis vs arsis beats
-            vector<int> beatIndices = addArsisToThesisIndices(thesisIndices);
-            noSuccessiveSamePerfectInterval(home, p1, p2, beatIndices);
-
-            // ----- successive notes -----
-
-            vector<int> noteIndices = getSuccessiveNotesIndices(p1,p2);
-            if (noteIndices.size() > 0) { noSuccessiveSamePerfectInterval(home, p1, p2, noteIndices); }
-        }
-    }
-}
-
-void noSimultaneousRepetitionOnIndices(Home home, Part* p1, Part* p2, const vector<int>& indices) {
-    IntVarArray notes1 = p1->getNotes();
-    IntVarArray notes2 = p2->getNotes();
-    bool p1Fourth = p1->getSpecies() == FOURTH_SPECIES;
-    bool p2Fourth = p2->getSpecies() == FOURTH_SPECIES;
-    
-    if (notes1.size() != notes2.size()){ // p1 is cantus firmus
-        notes1 = expandCantusNotes(home, notes1);
-    }
-
-    for (int i = 0; i < (int)indices.size()-1; i++) {
-        const int t1 = indices[i];
-        const int t2 = indices[i+1];
-
-        BoolVar p1Repeats(home, 0, 1);
-        BoolVar p2Repeats(home, 0, 1);
-        BoolVar bothRepeat(home, 0, 1);
-
-        if (!p1Fourth){
-            rel(home, notes1[t1], IRT_EQ, notes1[t2], Reify(p1Repeats));
-        } else {
-            rel(home, notes1[t1+2], IRT_EQ, notes1[min(t2+2, indices.back())], Reify(p1Repeats));
-        }
-
-        if (!p2Fourth){
-            rel(home, notes2[t1], IRT_EQ, notes2[t2], Reify(p2Repeats));
-        } else {
-            rel(home, notes2[t1+2], IRT_EQ, notes2[min(t2+2, indices.back())], Reify(p2Repeats));
-        }
-
-        rel(home, p1Repeats, BOT_AND, p2Repeats, bothRepeat);
-
-        // Hard forbid
-        rel(home, bothRepeat == 0);
-    }
-}
-
-void P4_2_noSimultaneousRepetition(Home home, vector<Part*> parts) {
-    int count = 0;
-    for (int v1 = 0; v1 < parts.size(); v1++) {
-        for (int v2 = v1 + 1; v2 < parts.size(); v2++) {
-            count++;
-            Part* p1 = parts[v1];
-            Part* p2 = parts[v2];
-
-            // ----- successive beats -----
-            vector<int> thesisIndices = createRangeVector(0, p1->getNMeasures(), 4);
-            noSimultaneousRepetitionOnIndices(home, p1, p2, thesisIndices);
-
-            // ----- successive notes -----
-            vector<int> noteIndices = getSuccessiveNotesIndices(p1,p2);
-            if (noteIndices.size() > 0) { noSimultaneousRepetitionOnIndices(home, p1, p2, noteIndices); }
         }
     }
 }
@@ -782,13 +649,139 @@ void P7_noSuccessiveAscendingSixths(Home home, vector<Part*> parts){
     }
 }
 
-void P1_1_3v_noDirectMotionFromPerfectConsonance(Home home, Part* part){
-    for(int j = 0; j < part->getFirstSpeciesMotions().size()-1; j++){
-        //set a cost when it is reached through direct motion, it is 0 when not
-        rel(home, (part->getFirstSpeciesMotions()[j]==2&&(part->getFirstSpeciesHIntervals()[j+1]==0||part->getFirstSpeciesHIntervals()[j+1]==7))>>
-            (part->getDirectCostArray()[j]==part->getDirectCost()));
-        rel(home, (part->getFirstSpeciesMotions()[j]!=2||(part->getFirstSpeciesHIntervals()[j+1]!=0&&part->getFirstSpeciesHIntervals()[j+1]!=7))>>
-            (part->getDirectCostArray()[j]==0));
+void noSuccessiveSamePerfectIntervalOnIndices(Home home, Part* p1, Part* p2, vector<int>& indices) {
+    int nIndices = indices.size();
+    bool p1Fourth = p1->getSpecies() == FOURTH_SPECIES;
+    bool p2Fourth = p2->getSpecies() == FOURTH_SPECIES;
+
+    IntVarArray notes1 = p1->getNotes();
+    IntVarArray notes2 = p2->getNotes();
+    if (notes1.size() != notes2.size()){ // p1 is cantus firmus
+        notes1 = expandCantusNotes(home, notes1);
+    }
+
+    // Building intervals array --> For fourth species, compare the syncopated note (index +2) with the structurally relevant note of the other voice, measure by measure.
+    IntVarArray hIntervals12(home, nIndices, 0, MAJOR_SEVENTH);
+    for (int i = 0; i < nIndices-1; i++) {
+        int idx1 = p1Fourth ? indices[i]+2 : indices[i];
+        int idx2 = p2Fourth ? indices[i]+2 : indices[i];
+        rel(home, hIntervals12[i] == (abs(notes1[idx1] - notes2[idx2]) % 12));
+    }
+    rel(home, hIntervals12[nIndices-1] == (abs(notes1[indices.back()] - notes2[indices.back()]) % 12)); // Final note
+
+    // Constraint
+    for (int i = 0; i < hIntervals12.size()-1; i++) {
+        rel(home, expr(home, hIntervals12[i] == UNISSON), BOT_AND, expr(home, hIntervals12[i+1] == UNISSON), 0); // No successive unisson
+        rel(home, expr(home, hIntervals12[i] == PERFECT_FIFTH), BOT_AND, expr(home, hIntervals12[i+1] == PERFECT_FIFTH), 0); // No successive fifth
+    }
+}
+
+void P8_noSuccessiveSamePerfectInterval(Home home, vector<Part*> parts) {
+    for (int v1 = 0; v1 < parts.size(); v1++) {
+        for (int v2 = v1 + 1; v2 < parts.size(); v2++) {
+            Part* p1 = parts[v1];
+            Part* p2 = parts[v2];
+
+            // ----- successive beats -----
+            vector<int> thesisIndices = createRangeVector(0, p1->getNMeasures(), 4);
+            noSuccessiveSamePerfectIntervalOnIndices(home, p1, p2, thesisIndices);
+
+            // Checking again with arsis beats
+            vector<int> beatIndices;
+            int n_old = thesisIndices.size();
+            for (int i = 0; i < n_old-1; i++) {
+                beatIndices.push_back(thesisIndices[i]);
+                beatIndices.push_back(thesisIndices[i]+2);
+            }
+            beatIndices.push_back(thesisIndices[n_old-1]);
+            noSuccessiveSamePerfectIntervalOnIndices(home, p1, p2, beatIndices);
+
+            // ----- successive notes -----
+            bool p1Third = p1->getSpecies() == THIRD_SPECIES;
+            bool p2Third = p2->getSpecies() == THIRD_SPECIES;
+            bool p1Fourth = p1->getSpecies() == FOURTH_SPECIES;
+            bool p2Fourth = p2->getSpecies() == FOURTH_SPECIES;
+
+            // If no 3d species, already taken care of in arsis or thesis
+            // If 4th species, doesn't really have sense
+            if ((p1Third || p2Third) && !p1Fourth && !p2Fourth){ 
+                const int nMeasures = p1->getNMeasures();
+                vector<int> noteIndices = createRangeVector(0, nMeasures*4-3, 1);
+                noSuccessiveSamePerfectIntervalOnIndices(home, p1, p2, noteIndices);
+            }
+        }
+    }
+}
+
+void noSimultaneousRepetitionOnIndices(Home home, Part* p1, Part* p2, const vector<int>& indices) {
+    IntVarArray notes1 = p1->getNotes();
+    IntVarArray notes2 = p2->getNotes();
+    bool p1Fourth = p1->getSpecies() == FOURTH_SPECIES;
+    bool p2Fourth = p2->getSpecies() == FOURTH_SPECIES;
+    
+    if (notes1.size() != notes2.size()){ // p1 is cantus firmus
+        notes1 = expandCantusNotes(home, notes1);
+    }
+
+    for (int i = 0; i < (int)indices.size()-1; i++) {
+        const int t1 = indices[i];
+        const int t2 = indices[i+1];
+
+        BoolVar p1Repeats(home, 0, 1);
+        BoolVar p2Repeats(home, 0, 1);
+
+        if (!p1Fourth){
+            rel(home, notes1[t1], IRT_EQ, notes1[t2], Reify(p1Repeats));
+        } else {
+            rel(home, notes1[t1+2], IRT_EQ, notes1[min(t2+2, indices.back())], Reify(p1Repeats));
+        }
+
+        if (!p2Fourth){
+            rel(home, notes2[t1], IRT_EQ, notes2[t2], Reify(p2Repeats));
+        } else {
+            rel(home, notes2[t1+2], IRT_EQ, notes2[min(t2+2, indices.back())], Reify(p2Repeats));
+        }
+
+        rel(home, p1Repeats, BOT_AND, p2Repeats, 0); // Hard forbid
+    }
+}
+
+void P9_noSimultaneousRepetition(Home home, vector<Part*> parts) {
+    int count = 0;
+    for (int v1 = 0; v1 < parts.size(); v1++) {
+        for (int v2 = v1 + 1; v2 < parts.size(); v2++) {
+            count++;
+            Part* p1 = parts[v1];
+            Part* p2 = parts[v2];
+
+            // ----- successive beats -----
+            vector<int> thesisIndices = createRangeVector(0, p1->getNMeasures(), 4);
+            noSimultaneousRepetitionOnIndices(home, p1, p2, thesisIndices);
+
+            // Checking again with arsis beats
+            vector<int> beatIndices;
+            int n_old = thesisIndices.size();
+            for (int i = 0; i < n_old-1; i++) {
+                beatIndices.push_back(thesisIndices[i]);
+                beatIndices.push_back(thesisIndices[i]+2);
+            }
+            beatIndices.push_back(thesisIndices[n_old-1]);
+            noSimultaneousRepetitionOnIndices(home, p1, p2, beatIndices);
+
+            // ----- successive notes -----
+            bool p1Third = p1->getSpecies() == THIRD_SPECIES;
+            bool p2Third = p2->getSpecies() == THIRD_SPECIES;
+            bool p1Fourth = p1->getSpecies() == FOURTH_SPECIES;
+            bool p2Fourth = p2->getSpecies() == FOURTH_SPECIES;
+
+            // If no 3d species, already taken care of in arsis or thesis
+            // If 4th species, doesn't really have sense
+            if ((p1Third || p2Third) && !p1Fourth && !p2Fourth){ 
+                const int nMeasures = p1->getNMeasures();
+                vector<int> noteIndices = createRangeVector(0, nMeasures*4-3, 1);
+                noSimultaneousRepetitionOnIndices(home, p1, p2, noteIndices);
+            }
+        }
     }
 }
 

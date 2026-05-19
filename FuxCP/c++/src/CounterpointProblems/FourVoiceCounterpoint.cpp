@@ -72,10 +72,7 @@ FourVoiceCounterpoint::FourVoiceCounterpoint(vector<int> cf, vector<Species> sp,
     if (activeConstraints[V4_1P4]) {
         P4_successiveCost(*this, parts, successiveCostArray);
     }
-    
-    P4_1_noSuccessiveSamePerfectInterval(*this, parts);
-    P4_2_noSimultaneousRepetition(*this, parts);
-    
+
     //P6 : no move in same direction
     if (activeConstraints[V4_1P6]) {
         P6_4v_noMoveInSameDirection(*this, parts);
@@ -87,6 +84,16 @@ FourVoiceCounterpoint::FourVoiceCounterpoint(vector<int> cf, vector<Species> sp,
     //P7 : no suxxessive ascending sixths
     if (activeConstraints[V4_1P7]) {
         P7_noSuccessiveAscendingSixths(*this, parts);
+    }
+
+    // P8 from Karim : successive fifths and successive octave / unissons are forbidden
+    if (activeConstraints[V4_1P8]) {
+        P8_noSuccessiveSamePerfectInterval(*this, parts);
+    }
+
+    // P9 from Karim : simultaneous repetitions between two voices are forbidden
+    if (activeConstraints[V4_1P9]) {
+        P9_noSimultaneousRepetition(*this, parts);
     }
 
     //2.M2, have to write it here since it has a weird interaction with the third species

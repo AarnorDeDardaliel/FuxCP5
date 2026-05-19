@@ -146,9 +146,9 @@ void P3_2_noBattuta(Home home, Part* part);
 
 void P4_successiveCost(Home home, vector<Part*> parts, IntVarArray successiveCostArray);
 
-void P4_1_noSuccessiveSamePerfectInterval(Home home, std::vector<Part*> parts);
+void P8_noSuccessiveSamePerfectInterval(Home home, std::vector<Part*> parts);
 
-void P4_2_noSimultaneousRepetition(Home home, std::vector<Part*> parts);
+void P9_noSimultaneousRepetition(Home home, std::vector<Part*> parts);
 
 void P6_3v_noMoveInSameDirection(Home home, vector<Part*> parts);
 
