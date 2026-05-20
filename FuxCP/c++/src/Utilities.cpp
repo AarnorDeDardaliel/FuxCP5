@@ -68,7 +68,7 @@ static const vector<pair<string, vector<int>>> SCALE_CANDIDATES = {
     {"Blues mineure",         BLUES_MINOR_SCALE}
 };
 
-static pair<string, vector<int>> detect_scale_pair(const vector<int>& cf) {
+static pair<string, vector<int>> detect_scale_pair(const vector<int>& cf) { // Pair name, scale
     if (cf.empty()) {
         return {"Majeur [fallback CF vide]", MAJOR_SCALE};
     }
@@ -378,6 +378,22 @@ string intVarArgs_to_string(IntVarArgs args){
     return res;
 }
 
+Species int_to_species(int sp) {
+    switch (sp) {
+        case 1: return FIRST_SPECIES;
+        case 2: return SECOND_SPECIES;
+        case 3: return THIRD_SPECIES;
+        case 4: return FOURTH_SPECIES;
+        case 5: return FIFTH_SPECIES;
+        default: return THIRD_SPECIES;
+    }
+}
+
+string midi_to_french(int note) {
+    static const string names[] = {"Do","Do#","Ré","Mib","Mi","Fa","Fa#","Sol","Lab","La","Sib","Si"};
+    int oct = note / 12 - 1;
+    return names[note % 12] + to_string(oct);
+}
 
 
 /**

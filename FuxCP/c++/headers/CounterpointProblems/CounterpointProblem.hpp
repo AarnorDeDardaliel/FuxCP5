@@ -25,6 +25,39 @@ enum ObjectiveMode {
 };
 
 
+static const char* obj_mode_label(ObjectiveMode m) {
+    switch (m) {
+        case OBJECTIVE_TOTAL: return "total (somme globale)";
+        case OBJECTIVE_MIXED: return "mixed (somme + score lex pond\u00e9r\u00e9)";
+        case OBJECTIVE_PONDERED: return "pond (score lex pond\u00e9r\u00e9)";
+        default:              return "lex (lexicographique par priorit\u00e9)";
+    }
+}
+static const char* obj_mode_short(ObjectiveMode m) {
+    switch (m) {
+        case OBJECTIVE_TOTAL: return "total";
+        case OBJECTIVE_MIXED: return "mixed";
+        case OBJECTIVE_PONDERED: return "pond";
+        default:              return "lex";
+    }
+}
+static const char* cost_label(ObjectiveMode m) {
+    switch (m) {
+        case OBJECTIVE_TOTAL: return "Co\u00fbt total";
+        case OBJECTIVE_MIXED: return "Score mixte";
+        case OBJECTIVE_PONDERED: return "Score pondéré";
+        default:              return "Somme lex (indic.)";
+    }
+}
+
+static ObjectiveMode parse_obj_mode(const string& s) {
+    if (s == "total") return OBJECTIVE_TOTAL;
+    if (s == "mixed") return OBJECTIVE_MIXED;
+    if (s == "pond") return OBJECTIVE_PONDERED;
+    return OBJECTIVE_LEX;
+}
+
+
 /**
  * This (abstract) class gives a general model for a counterpoint problem. 
  */

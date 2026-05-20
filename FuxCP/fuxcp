@@ -20,7 +20,7 @@ CPP_DIR="$ROOT_DIR/c++"
 CONFIG_DIR="$ROOT_DIR/config"
 RESULTS_DIR="$REPO_DIR/results"
 LOGS_DIR="$RESULTS_DIR/cli_logs"
-BIN="$ROOT_DIR/compiled/GenerateCounterpoint"
+BIN="$ROOT_DIR/compiled/Generations"
 
 mkdir -p "$LOGS_DIR"
 
@@ -146,7 +146,8 @@ run_campaign() {
     echo "  lex   = lexicographique par priorité (défaut, recommandé)"
     echo "  total = somme globale (toutes contraintes au même poids)"
     echo "  mixed = lex pondéré + somme globale"
-    read -rp "Mode (lex/total/mixed) [lex] : " obj
+    echo "  pond = lex pondéré"
+    read -rp "Mode (lex/total/mixed/pond) [lex] : " obj
     obj="${obj:-lex}"
 
     read -rp "Lancer en arrière-plan ? [O/n] : " bg

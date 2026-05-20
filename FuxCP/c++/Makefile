@@ -54,7 +54,7 @@ SHARED_SOURCES = \
 	src/CounterpointProblems/ThreeVoiceCounterpoint.cpp \
 	src/CounterpointProblems/FourVoiceCounterpoint.cpp \
 	src/Parts/constraints.cpp \
-	src/Midi.cpp
+	src/Midi.cpp src/Generations.cpp src/GenerationsAPI.cpp
 
 # =============================================================
 # CIBLE PAR DÉFAUT
@@ -85,11 +85,9 @@ $(TARGET): $(OBJS)
 # GÉNÉRATEUR DE CONTREPOINTS (binaire principal)
 # =============================================================
 
-GENERATE_COUNTERPOINT_SOURCES = src/Generations.cpp $(SHARED_SOURCES)
-
 compile_generate_counterpoint:
 	@mkdir -p $(COMPILED_DIR)
-	$(CXX) $(CXXFLAGS_DEBUG) $(GENERATE_COUNTERPOINT_SOURCES) \
+	$(CXX) $(CXXFLAGS_DEBUG) src/main.cpp $(SHARED_SOURCES) \
 	    -o $(COMPILED_DIR)/Generations $(LIBS_MINIMAL)
 
 # --- Génération d'un contrepoint précis ---
@@ -108,6 +106,9 @@ compile_for_debug:
 	$(CXX) $(CXXFLAGS_DEBUG) src/Tests/main.cpp src/Tests/fuxTest.cpp src/Tests/figureTests.cpp $(SHARED_SOURCES) -o $(COMPILED_DIR)/Main $(LIBS_MINIMAL)
 
 test: compile_for_debug
+	$(COMPILED_DIR)/Main $(name)
+
+test_all: compile_for_debug
 	$(COMPILED_DIR)/Main all
 
 # =============================================================
