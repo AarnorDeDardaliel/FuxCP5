@@ -48,6 +48,8 @@ Main
 *.csv
 !FuxCP/config/
 !FuxCP/config/*.csv
+!FuxCP/config/GenData/
+!FuxCP/config/GenData/*csv
 FuxCP/scripts/
 
 FuxCP/compiled/
