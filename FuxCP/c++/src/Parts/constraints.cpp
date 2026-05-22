@@ -551,10 +551,16 @@ void applySecondSpeciesSuccessiveCost(Home home, Part* secondSpeciesPart, const 
 void P4_successiveCost(Home home, vector<Part*> parts, IntVarArray successiveCostArray){
     int idx = 0;
 
-    for (int v1 = 1; v1 < parts.size(); v1++) {
+    for (int v1 = 0; v1 < parts.size(); v1++) {
         for (int v2 = v1+1; v2 < parts.size(); v2++) {
             Part* p1 = parts[v1];
             Part* p2 = parts[v2];
+
+            IntVarArray notes1 = p1->getNotes();
+            IntVarArray notes2 = p2->getNotes();
+            if (notes1.size() != notes2.size()){ // p1 is cantus firmus
+                notes1 = expandCantusNotes(home, notes1);
+            }
 
             const int nMeasures = p1->getNMeasures();
             const bool p1Second = p1->getSpecies() == SECOND_SPECIES;
@@ -569,12 +575,12 @@ void P4_successiveCost(Home home, vector<Part*> parts, IntVarArray successiveCos
                 for (int i = 0; i < nMeasures-1; i++) {
                     const int idx1 = p1Fourth ? i*4+2 : i*4;
                     const int idx2 = p2Fourth ? i*4+2 : i*4;
-                    rel(home, hIntervals12[i] == (abs(p1->getNotes()[idx1] - p2->getNotes()[idx2]) % 12));
+                    rel(home, hIntervals12[i] == (abs(notes1[idx1] - notes2[idx2]) % 12));
                 }
-                rel(home, hIntervals12[nMeasures-1] == (abs(p1->getNotes()[p1->getNotes().size()-1] - p2->getNotes()[p2->getNotes().size()-1]) % 12)); // Final note
+                rel(home, hIntervals12[nMeasures-1] == (abs(notes1[notes1.size()-1] - notes2[notes2.size()-1]) % 12)); // Final note
             } else {
                 for (int i = 0; i < nMeasures; i++) {
-                    rel(home, hIntervals12[i] == (abs(p1->getNotes()[i*4] - p2->getNotes()[i*4]) % 12));
+                    rel(home, hIntervals12[i] == (abs(notes1[i*4] - notes2[i*4]) % 12));
                 }
             }
 
@@ -584,15 +590,7 @@ void P4_successiveCost(Home home, vector<Part*> parts, IntVarArray successiveCos
             }
 
             // ----- Applying constrains -----
-            if (p1Second || p2Second){
-                if (p1Second) { // Second species has priorities because it has an exception
-                    applySecondSpeciesSuccessiveCost(home, p1, hIntervals12, isPCons12, successiveCostArray, idx, p1->getSuccCost());
-                }
-                if (p2Second) {
-                    applySecondSpeciesSuccessiveCost(home, p2, hIntervals12, isPCons12, successiveCostArray, idx, p1->getSuccCost());
-                }
-            }            
-            else if (p1Fourth || p2Fourth) {
+            if (p1Fourth || p2Fourth) { // Second species has priorities because it accepts more
                 for (int i = 0; i < hIntervals12.size()-1; i++) {
                     BoolVar firstNotFifth(home, 0, 1);
                     BoolVar secondNotFifth(home, 0, 1);
@@ -610,6 +608,13 @@ void P4_successiveCost(Home home, vector<Part*> parts, IntVarArray successiveCos
 
                     setCostFromBool(home, successivePerfectNotFifths, successiveCostArray[idx], p1->getSuccCost());
                     idx++;
+                }
+            } else if (p1Second || p2Second){
+                if (p1Second) {
+                    applySecondSpeciesSuccessiveCost(home, p1, hIntervals12, isPCons12, successiveCostArray, idx, p1->getSuccCost());
+                }
+                if (p2Second) {
+                    applySecondSpeciesSuccessiveCost(home, p2, hIntervals12, isPCons12, successiveCostArray, idx, p1->getSuccCost());
                 }
             } else {
                 for (int i = 0; i < isPCons12.size()-1; i++) {
