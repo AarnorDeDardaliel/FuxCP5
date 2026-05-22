@@ -45,8 +45,8 @@ static GenerationCase build_gc_from_api_input(const GenerationInput& input) {
     gc.v_type = input.v_type;
 
     if (input.preset_name != "") gc.preset_name = input.preset_name;
-    if (input.timeout_ms != -1) gc.timeout_ms = input.timeout_ms;
-    if (input.stagnation_ms != -1) gc.stagnation_ms = input.stagnation_ms;
+    if (input.timeout_ms > -1) gc.timeout_ms = input.timeout_ms;
+    if (input.stagnation_ms > -1) gc.stagnation_ms = input.stagnation_ms;
     gc.obj_mode = input.obj_mode;
     if (input.output_root != "") gc.output_root = input.output_root;
     if (input.output_subdir != "") gc.output_subdir = input.output_subdir;

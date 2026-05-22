@@ -66,8 +66,6 @@ public:
 
 static const int CHECKPOINT_INTERVAL = 1000;
 
-
-
 static string species_tag_for(const GenerationCase& gc) {
     string tag = to_string(gc.n_voices) + "voices_1";  // CF en première position
     for (int s : gc.spList) tag += "_" + to_string(s+1);
@@ -371,15 +369,17 @@ static GenerationResult run_bench(CounterpointProblem* problem, GenerationCase& 
                     << " | " << cost_label(gc.obj_mode) << "="
                     << fixed << setprecision(1) << cost << "]" << endl;
             }
-            
-            // Logging progressif des itérations (affiche tous les 1, 5, 10, 20, 50, 100, 500, 1000...)
-            if (should_log_iteration(iteration)) {
-                cout << "    -> Itération " << iteration << " | t=" 
-                    << fixed << setprecision(0) << now << "ms | meilleur="
-                    << fixed << setprecision(1) << result.best_cost << endl;
-            }
         }
         
+        // Logging progressif des itérations (affiche tous les 1, 5, 10, 20, 50, 100, 500, 1000...)
+        if (should_log_iteration(iteration)) {
+            // Log even without verbose to check the algorithm is progressing
+            cout << "    -> Itération " << iteration << " | t=" 
+            << fixed << setprecision(0) << now << "ms | meilleur="
+            << fixed << setprecision(1) << result.best_cost << endl;            
+        }
+
+
         result.solutions_log.emplace_back(result.nb_solutions, now, cost, lex);
 
         if (result.nb_solutions == 1) result.ms_first_solution = now;
