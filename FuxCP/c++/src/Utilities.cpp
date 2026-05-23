@@ -485,3 +485,81 @@ vector<int> createRangeVector(int from, int to, int multiplier) {
     }
     return indices;
 }
+
+BranchVarSel g_solution_var_sel = BR_VAR_AFC_MAX;
+BranchValSel g_solution_val_sel = BR_VAL_RND;
+unsigned int g_solution_val_rnd_seed = 1U;
+
+const char* branch_var_sel_name(BranchVarSel s) {
+    switch (s) {
+        case BR_VAR_SIZE_MIN:   return "size-min";
+        case BR_VAR_SIZE_MAX:   return "size-max";
+        case BR_VAR_DEGREE_MAX: return "degree-max";
+        case BR_VAR_AFC_MAX:    return "afc-max";
+        case BR_VAR_ACTION_MAX: return "action-max";
+        case BR_VAR_NONE:       return "none";
+    }
+    return "unknown";
+}
+
+const char* branch_val_sel_name(BranchValSel s) {
+    switch (s) {
+        case BR_VAL_MIN:       return "min";
+        case BR_VAL_MAX:       return "max";
+        case BR_VAL_MED:       return "med";
+        case BR_VAL_RND:       return "rnd";
+        case BR_VAL_SPLIT_MIN: return "split-min";
+        case BR_VAL_SPLIT_MAX: return "split-max";
+    }
+    return "unknown";
+}
+
+BranchVarSel parse_branch_var_sel(const string& s) {
+    if (s == "size-min")   return BR_VAR_SIZE_MIN;
+    if (s == "size-max")   return BR_VAR_SIZE_MAX;
+    if (s == "degree-max") return BR_VAR_DEGREE_MAX;
+    if (s == "afc-max")    return BR_VAR_AFC_MAX;
+    if (s == "action-max") return BR_VAR_ACTION_MAX;
+    if (s == "none")       return BR_VAR_NONE;
+    return BR_VAR_AFC_MAX;
+}
+
+BranchValSel parse_branch_val_sel(const string& s) {
+    if (s == "min")       return BR_VAL_MIN;
+    if (s == "max")       return BR_VAL_MAX;
+    if (s == "med")       return BR_VAL_MED;
+    if (s == "rnd")       return BR_VAL_RND;
+    if (s == "split-min") return BR_VAL_SPLIT_MIN;
+    if (s == "split-max") return BR_VAL_SPLIT_MAX;
+    return BR_VAL_RND;
+}
+
+static IntVarBranch resolve_var_branch(BranchVarSel s) {
+    switch (s) {
+        case BR_VAR_SIZE_MIN:   return INT_VAR_SIZE_MIN();
+        case BR_VAR_SIZE_MAX:   return INT_VAR_SIZE_MAX();
+        case BR_VAR_DEGREE_MAX: return INT_VAR_DEGREE_MAX();
+        case BR_VAR_AFC_MAX:    return INT_VAR_AFC_MAX();
+        case BR_VAR_ACTION_MAX: return INT_VAR_ACTION_MAX();
+        case BR_VAR_NONE:       return INT_VAR_NONE();
+    }
+    return INT_VAR_AFC_MAX();
+}
+
+static IntValBranch resolve_val_branch(BranchValSel s, unsigned int seed) {
+    switch (s) {
+        case BR_VAL_MIN:       return INT_VAL_MIN();
+        case BR_VAL_MAX:       return INT_VAL_MAX();
+        case BR_VAL_MED:       return INT_VAL_MED();
+        case BR_VAL_RND:       return INT_VAL_RND(seed);
+        case BR_VAL_SPLIT_MIN: return INT_VAL_SPLIT_MIN();
+        case BR_VAL_SPLIT_MAX: return INT_VAL_SPLIT_MAX();
+    }
+    return INT_VAL_RND(seed);
+}
+
+void branch_solution_array_dynamic(Home home, const IntVarArgs& vars) {
+    branch(home, vars,
+           resolve_var_branch(g_solution_var_sel),
+           resolve_val_branch(g_solution_val_sel, g_solution_val_rnd_seed));
+}

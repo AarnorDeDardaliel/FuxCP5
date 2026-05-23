@@ -661,7 +661,7 @@ void applySecondSpeciesSuccessiveCost(Home home, Part* secondSpeciesPart, const 
 void P4_successiveCost(Home home, vector<Part*> parts, IntVarArray successiveCostArray){
     int idx = 0;
 
-    for (int v1 = 0; v1 < parts.size(); v1++) {
+    for (int v1 = 1; v1 < parts.size(); v1++) {
         for (int v2 = v1+1; v2 < parts.size(); v2++) {
             Part* p1 = parts[v1];
             Part* p2 = parts[v2];
@@ -800,7 +800,7 @@ void P8_noSuccessiveSamePerfectInterval(Home home, vector<Part*> parts) {
 
             // ----- successive beats -----
             vector<int> beatIndices = createRangeVector(0, 2*(p1->getNMeasures()-1), 2); // thesis + arsis
-            beatIndices.push_back(4*p1->getNMeasures()-3); // last thesis
+            beatIndices.push_back(4*(p1->getNMeasures()-1)); // last thesis
             noSuccessiveSamePerfectIntervalOnIndices(home, p1, p2, beatIndices);
 
             // ----- successive notes -----
@@ -862,7 +862,7 @@ void P9_noSimultaneousRepetition(Home home, vector<Part*> parts) {
 
             // Checking again with arsis beats
             vector<int> beatIndices = createRangeVector(0, 2*(p1->getNMeasures()-1), 2); // thesis + arsis
-            beatIndices.push_back(4*p1->getNMeasures()-3); // last thesis
+            beatIndices.push_back(4*(p1->getNMeasures()-1)); // last thesis
             noSimultaneousRepetitionOnIndices(home, p1, p2, beatIndices);
 
             // ----- successive notes -----
