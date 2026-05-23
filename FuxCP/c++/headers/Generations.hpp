@@ -64,12 +64,12 @@ struct GenerationResult {
     bool success = false;
     string termination = "NONE";
 
-    int nb_solutions;
-    int nb_improvements;
-    double best_cost;
-    double ms_first_solution;
-    double ms_last_improve;
-    double ms_total;
+    int nb_solutions = 0;
+    int nb_improvements = 0;
+    double best_cost = 1e18; // must start above any possible cost, else no solution is ever kept
+    double ms_first_solution = 0;
+    double ms_last_improve = 0;
+    double ms_total = 0;
 
     Gecode::Search::Statistics stats;
 
