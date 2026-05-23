@@ -451,7 +451,7 @@ enum constraints{
 const int consSize = static_cast<int>(SP5_4V_2+1); // Number of constraints
 extern vector<bool> activeConstraints;
 extern vector<bool> softConstraints;
-     
+
 enum toCombineConstraints{
     H1_1,
 };
@@ -680,5 +680,48 @@ void writeToLogFile(const char* message);
 
 IntVarArray expandCantusNotes(Home home, IntVarArray cantus);
 vector<int> createRangeVector(int from, int to, int multiplier);
+
+/* ================================================
+ *         DYNAMIC BRANCHING SELECTORS
+ * ================================================
+ * Exposed for SolverBench / branching campaign skill: the solutionArray
+ * branching heuristic in TwoVoiceCounterpoint reads these globals at
+ * construction time, so a benchmark can swap them between runs without
+ * recompiling. Defaults reproduce the production setting
+ * (AFC_MAX + VAL_RND(1U) + seed 1) so any other binary keeps its current
+ * behaviour as long as it does not touch these.
+ */
+
+enum BranchVarSel {
+    BR_VAR_SIZE_MIN = 0,
+    BR_VAR_SIZE_MAX,
+    BR_VAR_DEGREE_MAX,
+    BR_VAR_AFC_MAX,
+    BR_VAR_ACTION_MAX,
+    BR_VAR_NONE
+};
+
+enum BranchValSel {
+    BR_VAL_MIN = 0,
+    BR_VAL_MAX,
+    BR_VAL_MED,
+    BR_VAL_RND,
+    BR_VAL_SPLIT_MIN,
+    BR_VAL_SPLIT_MAX
+};
+
+extern BranchVarSel g_solution_var_sel;
+extern BranchValSel g_solution_val_sel;
+extern unsigned int g_solution_val_rnd_seed;
+
+const char* branch_var_sel_name(BranchVarSel s);
+const char* branch_val_sel_name(BranchValSel s);
+BranchVarSel parse_branch_var_sel(const string& s);
+BranchValSel parse_branch_val_sel(const string& s);
+
+// Applies branch(home, vars, ...) using the current global selectors.
+// The helper is intentionally limited to the solutionArray case so that
+// touching the globals never changes the other branching layers.
+void branch_solution_array_dynamic(Home home, const IntVarArgs& vars);
 
 #endif

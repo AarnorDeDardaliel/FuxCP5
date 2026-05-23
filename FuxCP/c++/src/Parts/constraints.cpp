@@ -129,6 +129,116 @@ void H2_3_disonanceImpliesDiminution(Home home, Part* part){
     }
 }
 
+// Returns the index, in another voice's note array, of its strong-beat (downbeat) note
+// for measure i. Only strong beats are guaranteed pinned: a slow voice's intermediate
+// cells (i*4+1, +2, +3) are free variables (see FirstSpeciesCounterpoint.cpp slice).
+// The CantusFirmus stores one note per measure (index i); other parts store four.
+static int strongBeatIndex(Part* voice, int i){
+    return (voice->getSpecies() == CANTUS_FIRMUS) ? i : i*4;
+}
+
+void H2_2_arsisHarmoniesCannotBeDisonnant_multiVoice(Home home, Part* secondSpPart, vector<Part*> otherVoices){
+    // h_intervals stored on each Part are computed only against the lowest stratum.
+    // In 3+ voice settings, the dissonance between the 2nd-species arsis and any
+    // OTHER voice is therefore never checked. Fux rule: a disjunct weak beat must be
+    // consonant with every sounding voice. We compare the arsis (index i*4+2, pinned
+    // for 2nd species) against each other voice's STRONG beat (only pinned reference),
+    // and tie the dissonance escape to isDiminution[i] (the 2nd-species passing flag).
+    for(int i = 0; i < secondSpPart->getNMeasures()-1; i++){
+        if(i == secondSpPart->getNMeasures()-2) continue; // skip penultimate (same as base H2_2)
+        for(Part* other : otherVoices){
+            if(other == secondSpPart) continue;
+            IntVar interval(home, 0, 11);
+            rel(home, interval == abs(secondSpPart->getNotes()[i*4+2] - other->getNotes()[strongBeatIndex(other, i)]) % 12);
+            for(int d : DISONANCE){
+                rel(home, interval, IRT_EQ, d, Reify(secondSpPart->getIsDiminution()[i], RM_PMI));
+            }
+        }
+    }
+}
+
+void H2_3_disonanceImpliesDiminution_multiVoice(Home home, Part* thirdSpPart, vector<Part*> otherVoices){
+    // 3rd species has 4 notes per measure: 1 strong beat (i*4) + 3 weak beats (i*4+1,+2,+3).
+    // The base H2_3 only checks the central weak beat (+2) against the bass. Here we check
+    // ALL three weak beats against EVERY other voice's strong beat. A weak beat may be
+    // dissonant only if it is a genuine passing tone: approached AND left by step (1..2
+    // semitones). All four cells are pinned for 3rd species, so melodic moves use them directly.
+    int nM = thirdSpPart->getNMeasures();
+    for(int i = 0; i < nM-1; i++){
+        for(int k = 1; k <= 3; k++){
+            int j = i*4 + k; // weak-beat instant (pinned for 3rd species)
+            IntVar inMove  = expr(home, abs(thirdSpPart->getNotes()[j]   - thirdSpPart->getNotes()[j-1]));
+            IntVar outMove = expr(home, abs(thirdSpPart->getNotes()[j+1] - thirdSpPart->getNotes()[j]));
+            BoolVar inStep  = expr(home, inMove  >= 1 && inMove  <= 2);
+            BoolVar outStep = expr(home, outMove >= 1 && outMove <= 2);
+            BoolVar isPassing = expr(home, inStep && outStep); // approached AND left by step
+            for(Part* other : otherVoices){
+                if(other == thirdSpPart) continue;
+                IntVar interval(home, 0, 11);
+                rel(home, interval == abs(thirdSpPart->getNotes()[j] - other->getNotes()[strongBeatIndex(other, i)]) % 12);
+                for(int d : DISONANCE){
+                    rel(home, interval, IRT_EQ, d, Reify(isPassing, RM_PMI));
+                }
+            }
+        }
+    }
+}
+
+// Index used to read a voice's harmony note for the SECOND half of a measure.
+// Only a 4th-species voice changes harmony mid-measure: its suspension (downbeat) resolves
+// on the 3rd beat (Bitsch §59), so it contributes its resolution note (i*4+2). Every other
+// voice holds its downbeat note across the whole measure.
+static int resolutionBeatIndex(Part* voice, int i){
+    return (voice->getSpecies() == FOURTH_SPECIES) ? i*4+2 : strongBeatIndex(voice, i);
+}
+
+void chordMembershipOnDisjunctWeakBeats(Home home, Part* sp, vector<Part*> allVoices){
+    // MANDATORY tonal rule (Bitsch §59). A disjunct weak-beat note must belong to the
+    // harmony of its half-measure (set of pitch classes of the structural notes of all
+    // voices). Normally a single harmony spans the whole measure (the downbeat pitch
+    // classes). A 4th-species voice doubles the harmonic rhythm: its suspension resolves
+    // on the 3rd beat, yielding a SECOND harmony for the 2nd half of the measure. So:
+    //   - weak beat +1 (1st half) is checked against the 1st-half harmony (downbeats);
+    //   - weak beats +2/+3 (2nd half) against the 2nd-half harmony (4th-species resolution).
+    // With no 4th-species voice the two harmonies coincide (single harmony per measure).
+    // Genuine passing tones (approached AND left by step) are exempt; the penultimate
+    // measure (cadence) is exempt.
+    int spc = sp->getSpecies();
+    vector<int> offsets;
+    if(spc == SECOND_SPECIES) offsets = {2};
+    else if(spc == THIRD_SPECIES) offsets = {1,2,3};
+    else return;
+
+    int nM = sp->getNMeasures();
+    for(int i = 0; i < nM-1; i++){
+        if(i == nM-2) continue; // penultimate measure exception (cadence)
+        for(int k : offsets){
+            int j = i*4 + k;
+            // passing-tone test (approached AND left by step)
+            BoolVar isPassing(home, 0, 1);
+            if(spc == THIRD_SPECIES){
+                IntVar inMove  = expr(home, abs(sp->getNotes()[j]   - sp->getNotes()[j-1]));
+                IntVar outMove = expr(home, abs(sp->getNotes()[j+1] - sp->getNotes()[j]));
+                isPassing = expr(home, (inMove >= 1 && inMove <= 2) && (outMove >= 1 && outMove <= 2));
+            } else { // SECOND_SPECIES: neighbours of the arsis are the real (pinned) thesis notes
+                IntVar inMove  = expr(home, abs(sp->getNotes()[i*4+2]   - sp->getNotes()[i*4]));
+                IntVar outMove = expr(home, abs(sp->getNotes()[(i+1)*4] - sp->getNotes()[i*4+2]));
+                isPassing = expr(home, (inMove >= 1 && inMove <= 2) && (outMove >= 1 && outMove <= 2));
+            }
+            // weak beat +1 belongs to the 1st-half harmony, +2/+3 to the 2nd-half harmony
+            bool firstHalf = (k == 1);
+            IntVar pc = expr(home, sp->getNotes()[j] % 12);
+            BoolVarArgs inChord;
+            for(Part* v : allVoices){
+                int idx = firstHalf ? strongBeatIndex(v, i) : resolutionBeatIndex(v, i);
+                inChord << expr(home, pc == (v->getNotes()[idx] % 12));
+            }
+            BoolVar anyInChord = expr(home, sum(inChord) >= 1);
+            rel(home, isPassing, BOT_OR, anyInChord, 1); // disjunct => must be in (half-)chord
+        }
+    }
+}
+
 void H3_1_endWithPerfectConsonance(Home home, Part* part){
     dom(home, part->getHIntervals()[part->getHIntervals().size()-1], IntSet(IntArgs(PERFECT_CONSONANCES)));
 }

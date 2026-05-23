@@ -105,6 +105,20 @@ FourVoiceCounterpoint::FourVoiceCounterpoint(vector<int> cf, vector<Species> sp,
         }
     }
 
+    // H2 extended (Fux multi-voice rule): a disjunct weak beat must be consonant with
+    // every other voice's strong beat, not only the lowest stratum. See constraints.cpp.
+    for (Part* p : parts) {
+        if (p->getSpecies() == SECOND_SPECIES && activeConstraints[SP2_2H2]) {
+            H2_2_arsisHarmoniesCannotBeDisonnant_multiVoice(*this, p, parts);
+        } else if (p->getSpecies() == THIRD_SPECIES && activeConstraints[SP3_3H2]) {
+            H2_3_disonanceImpliesDiminution_multiVoice(*this, p, parts);
+        }
+        // Tonal rule (mandatory): disjunct weak beat must belong to the measure harmony.
+        if (p->getSpecies() == SECOND_SPECIES || p->getSpecies() == THIRD_SPECIES) {
+            chordMembershipOnDisjunctWeakBeats(*this, p, parts);
+        }
+    }
+
     //two fifth species counterpoints should be as different as possible
     if (activeConstraints[V4_5R9]) {
         R9_5_twoFifthSpeciesDiversity_3v(*this, counterpoint_1, counterpoint_3);
@@ -190,9 +204,12 @@ FourVoiceCounterpoint::FourVoiceCounterpoint(vector<int> cf, vector<Species> sp,
             return a.first < b.first;
         });
     
-    // Branch on each voice in order of complexity
+    // Branch on each voice in order of complexity.
+    // Dispatched through globals (g_solution_var_sel / g_solution_val_sel) so
+    // SolverBench can swap heuristics without recompiling. Defaults are
+    // AFC_MAX + VAL_RND, matching the 2-voice production branching.
     for(const auto& voice : voicesBySize) {
-        branch(*this, voice.second->getBranchingNotes(), INT_VAR_SIZE_MIN(), INT_VAL_MIN());
+        branch_solution_array_dynamic(*this, voice.second->getBranchingNotes());
     }
     
     branch(*this, cost(), INT_VAR_NONE(), INT_VAL_MAX()); // Solves all "ValOfUnassignedVar" problems + accelerate every test
