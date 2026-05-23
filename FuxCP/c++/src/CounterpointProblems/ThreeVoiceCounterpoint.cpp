@@ -93,7 +93,7 @@ ThreeVoiceCounterpoint::ThreeVoiceCounterpoint(vector<int> cf, vector<Species> s
         P7_noSuccessiveAscendingSixths(*this, parts);
     }
 
-    // P8 from Karim : successive fifths and successive octave / unissons are forbidden
+    // P8 : successive fifths and successive octave / unissons are forbidden
     if (activeConstraints[V3_1P8]) {
         P8_noSuccessiveSamePerfectInterval(*this, parts);
     }

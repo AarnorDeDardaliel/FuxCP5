@@ -25,12 +25,14 @@ int main(int argc, char* argv[]) {
 
         GenerationInput gi;
         gi.cf_notes = {60,   62,   65,   64,   67,   65,   64,   62,   60}; // The cantus firmus notes
-        gi.species = {THIRD_SPECIES, FIRST_SPECIES, FIRST_SPECIES};
-        gi.v_type = {2 , 1, 0};
+        gi.species = {THIRD_SPECIES, FIRST_SPECIES};
+        gi.v_type = {2 , 1};
         gi.verbose = true;
+        gi.stagnation_ms = 0;
+        gi.output_subdir = "bryce_gen";
+        gi.timeout_ms = 2000;
 
         GenerationResult result = generate_counterpoint(gi);
-
     } else if(argc==2){ // FIGURE / FUX TESTS
         string arg1 = argv[1];
         char* str = argv[1];

@@ -87,3 +87,5 @@ struct GenerationInput {
 //   - resolved cantus firmus metadata
 //   - output file paths when saving is enabled
 GenerationResult generate_counterpoint(const GenerationInput& input);
+
+GenerationResult generate_counterpoint(vector<int> cf_notes, vector<Species> species, vector<int> v_type);

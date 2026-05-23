@@ -10,6 +10,7 @@
 #include <chrono>
 #include <signal.h> // For testing blocking constrains in generations
 #include "../../headers/Tests/fuxTest.hpp"
+#include "../../headers/GenerationsAPI.hpp"
 #include <gecode/int.hh> // Ensure you include the necessary Gecode headers
 
 
@@ -100,16 +101,14 @@ FuxTest::FuxTest(char* test){
         test_3v_3sp_fig132();
         test_3v_3sp_fig133();
         test_4v_2sp_fig176();
-    } else if(strcmp(test, "bryce")==0){
-        test_bryce();
-    } else if(strcmp(test, "bryce_2")==0){
-        test_bryce_2();
-    } else if(strcmp(test, "bryce_all")==0){
-        test_bryce_all();
-    } else if(strcmp(test, "bryce_classic")==0){
-        test_bryce_classic();
-    } else if(strcmp(test, "bryce_fullsp")==0){
-        test_bryce_fullsp();
+    } else if(strcmp(test, "gen")==0){
+        test_gen_custom();
+    } else if(strcmp(test, "gen_all")==0){
+        test_gen_all();
+    } else if(strcmp(test, "gen_classic")==0){
+        test_gen_classic();
+    } else if(strcmp(test, "gen_fullsp")==0){
+        test_gen_multi();
     } 
     else if(strcmp(test, "sacha")==0){
         cout << "Running sacha's test..." << endl;
@@ -4340,8 +4339,8 @@ void FuxTest::test_4v_2sp_fig176_setter(int i){
 //=======================================================================================
 //=======================================================================================
 
-void FuxTest::test_bryce_2v_1sp(){
-    cout << "===== test_bryce 2v 1sp =====" << endl;
+void FuxTest::test_gen_2v_1sp(){
+    cout << "===== test_gen 2v 1sp =====" << endl;
     spList = {FIRST_SPECIES};
     v_type = {0};
 
@@ -4369,8 +4368,8 @@ void FuxTest::test_bryce_2v_1sp(){
     delete problem;
 }
 
-void FuxTest::test_bryce_2v_2sp(){
-    cout << "===== test_bryce 2v 2sp =====" << endl;
+void FuxTest::test_gen_2v_2sp(){
+    cout << "===== test_gen 2v 2sp =====" << endl;
     spList = {SECOND_SPECIES};
     v_type = {1};
 
@@ -4402,8 +4401,8 @@ void FuxTest::test_bryce_2v_2sp(){
     delete problem;
 }
 
-void FuxTest::test_bryce_2v_3sp(){
-    cout << "===== test_bryce 2v 3sp =====" << endl;
+void FuxTest::test_gen_2v_3sp(){
+    cout << "===== test_gen 2v 3sp =====" << endl;
     spList = {THIRD_SPECIES};
     v_type = {1};
 
@@ -4435,8 +4434,8 @@ void FuxTest::test_bryce_2v_3sp(){
     delete problem;
 }
 
-void FuxTest::test_bryce_2v_4sp(){
-    cout << "===== test_bryce 2v 4sp =====" << endl;
+void FuxTest::test_gen_2v_4sp(){
+    cout << "===== test_gen 2v 4sp =====" << endl;
     spList = {FOURTH_SPECIES};
     v_type = {0};
 
@@ -4467,8 +4466,8 @@ void FuxTest::test_bryce_2v_4sp(){
     delete problem;
 }
 
-void FuxTest::test_bryce_3v_1sp(){
-    cout << "===== test_bryce 3v 1sp =====" << endl;
+void FuxTest::test_gen_3v_1sp(){
+    cout << "===== test_gen 3v 1sp =====" << endl;
     spList = {FIRST_SPECIES, FIRST_SPECIES};
     v_type = {0, 1};
 
@@ -4501,8 +4500,8 @@ void FuxTest::test_bryce_3v_1sp(){
     delete problem;
 }
 
-void FuxTest::test_bryce_3v_2sp(){
-    cout << "===== test_bryce 3v 2sp =====" << endl;
+void FuxTest::test_gen_3v_2sp(){
+    cout << "===== test_gen 3v 2sp =====" << endl;
     spList = {FIRST_SPECIES, SECOND_SPECIES};
     v_type = {0, 1};
 
@@ -4535,8 +4534,8 @@ void FuxTest::test_bryce_3v_2sp(){
     delete problem;
 }
 
-void FuxTest::test_bryce_3v_2sp_2sp(){
-    cout << "===== test_bryce 3v 2sp 2sp =====" << endl;
+void FuxTest::test_gen_3v_2sp_2sp(){
+    cout << "===== test_gen 3v 2sp 2sp =====" << endl;
     spList = {SECOND_SPECIES, SECOND_SPECIES};
     v_type = {0, 1};
 
@@ -4569,8 +4568,8 @@ void FuxTest::test_bryce_3v_2sp_2sp(){
     delete problem;
 }
 
-void FuxTest::test_bryce_3v_3sp(){
-    cout << "===== test_bryce 3v 3sp =====" << endl;
+void FuxTest::test_gen_3v_3sp(){
+    cout << "===== test_gen 3v 3sp =====" << endl;
     spList = {FIRST_SPECIES, THIRD_SPECIES};
     v_type = {0, 1};
 
@@ -4603,8 +4602,8 @@ void FuxTest::test_bryce_3v_3sp(){
     delete problem;
 }
 
-void FuxTest::test_bryce_3v_3sp_3sp(){
-    cout << "===== test_bryce 3v 3sp 3sp =====" << endl;
+void FuxTest::test_gen_3v_3sp_3sp(){
+    cout << "===== test_gen 3v 3sp 3sp =====" << endl;
     spList = {THIRD_SPECIES, THIRD_SPECIES};
     v_type = {0, 1};
 
@@ -4637,8 +4636,8 @@ void FuxTest::test_bryce_3v_3sp_3sp(){
     delete problem;
 }
 
-void FuxTest::test_bryce_3v_4sp(){
-    cout << "===== test_bryce 3v 4sp =====" << endl;
+void FuxTest::test_gen_3v_4sp(){
+    cout << "===== test_gen 3v 4sp =====" << endl;
     spList = {FIRST_SPECIES, FOURTH_SPECIES};
     v_type = {0, 1};
 
@@ -4671,8 +4670,8 @@ void FuxTest::test_bryce_3v_4sp(){
     delete problem;
 }
 
-void FuxTest::test_bryce_4v_1sp(){
-    cout << "===== test_bryce 4v 1sp =====" << endl; 
+void FuxTest::test_gen_4v_1sp(){
+    cout << "===== test_gen 4v 1sp =====" << endl; 
     spList = {FIRST_SPECIES, FIRST_SPECIES, FIRST_SPECIES};
     v_type = {0, 1, 2};
 
@@ -4705,8 +4704,8 @@ void FuxTest::test_bryce_4v_1sp(){
     delete problem;
 }
 
-void FuxTest::test_bryce_4v_2sp(){
-    cout << "===== test_bryce 4v 2sp =====" << endl;
+void FuxTest::test_gen_4v_2sp(){
+    cout << "===== test_gen 4v 2sp =====" << endl;
     spList = {FIRST_SPECIES, FIRST_SPECIES, SECOND_SPECIES};
     v_type = {0, 1, 2};
 
@@ -4739,8 +4738,8 @@ void FuxTest::test_bryce_4v_2sp(){
     delete problem;
 }
 
-void FuxTest::test_bryce_4v_2sp_2sp_2sp(){
-    cout << "===== test_bryce 4v 2sp full =====" << endl;
+void FuxTest::test_gen_4v_2sp_2sp_2sp(){
+    cout << "===== test_gen 4v 2sp full =====" << endl;
     spList = {SECOND_SPECIES, SECOND_SPECIES, SECOND_SPECIES};
     v_type = {0, 1, 2};
 
@@ -4773,8 +4772,8 @@ void FuxTest::test_bryce_4v_2sp_2sp_2sp(){
     delete problem;
 }
 
-void FuxTest::test_bryce_4v_3sp(){
-    cout << "===== test_bryce 4v 3sp =====" << endl;
+void FuxTest::test_gen_4v_3sp(){
+    cout << "===== test_gen 4v 3sp =====" << endl;
     spList = {SECOND_SPECIES, SECOND_SPECIES, THIRD_SPECIES};
     v_type = {0, 1, 2};
 
@@ -4807,8 +4806,8 @@ void FuxTest::test_bryce_4v_3sp(){
     delete problem;
 }
 
-void FuxTest::test_bryce_4v_4sp(){
-    cout << "===== test_bryce 4v 4sp =====" << endl;
+void FuxTest::test_gen_4v_4sp(){
+    cout << "===== test_gen 4v 4sp =====" << endl;
     spList = {SECOND_SPECIES, SECOND_SPECIES, FOURTH_SPECIES};
     v_type = {0, 1, 2};
 
@@ -4843,101 +4842,8 @@ void FuxTest::test_bryce_4v_4sp(){
 
 //=======================================================================================
 
-void FuxTest::test_bryce_2(){
-    cout << "===== test_bryce 2 =====" << endl; 
-    cantusFirmus = {60,   62,   65,   64,   67,   65,   64,   62,   60};
-    cfSize = cantusFirmus.size();
-    melodic_params = {0, 1, 2, 576, 5, 10, 25, 40};
-    general_params = {4, 1, 1, 2, 2, 2, 8, 1};
-    specific_params = {8 , 4 , 0 , 2 , 1 , 8 , 50};
-    importance = {8,7,5,2,9,3,14,12,6,11,4,10,1,13};
-    borrowMode = 1;
-
-    spList = {FIRST_SPECIES};
-    v_type = {1};
-
-    std::fill(activeConstraints.begin(), activeConstraints.end(), true);
-    //activeConstraints[SP1_1H6] = true;
-    auto* problem = create_problem(cantusFirmus, spList, v_type, melodic_params, general_params, specific_params, importance, borrowMode);
-
-    cout << "=== Problem defined" << endl;
-
-    // ===== Additional and necessary Constrains =====
-    rel(problem->getHome(), problem->getSolutionArray()[0], IRT_EQ, 60);
-    // rel(problem->getHome(), problem->getSolutionArray()[1], IRT_EQ, 54);
-
-    //auto home = problem->getHome();
-    //branch(home, problem->cost(), INT_VAR_NONE(), INT_VAL_MAX()); // Solves all "ValOfUnassignedVar" problems + accelerate every test
-    
-    cout << "=== Getting solutions" << endl;
-
-    // Run a short DFS on randomized branches to get fast a first "decent" solution, and bound globalCost to it, to fasten BAB ?
-    /*
-    DFS<CounterpointProblem> e(problem);
-    int nb_sol = 0;
-    int max_solutions = 100;
-    
-    while(CounterpointProblem* pb = e.next()){
-          
-        nb_sol++;
-        if (nb_sol % 100 == 0) {
-            cout << "Solution " << nb_sol << ": " << endl;
-            cout << pb->to_string() << endl;
-            cout << pb->getSize() << endl;
-            // cout << int_vector_to_string(cantusFirmus) << endl;
-        }
-
-        delete pb;
-        if (nb_sol > max_solutions) {
-            cout << "Found " << max_solutions << " solutions. Stopping search." << endl;
-            break;
-        }
-        
-        cout << "OK" << endl;
-    }*/
-
-    // BAB
-    BAB<CounterpointProblem> e(problem);
-    CounterpointProblem* best = nullptr;
-    int myCount = 0;
-    while (CounterpointProblem* s = e.next()) {
-        if (myCount%10000 == 0){
-            std::cout << "==========\nTEST NUMBER " << myCount << std::endl;
-            std::cout << "=== BAB:\n" << s->to_string() << std::endl;
-            std::cout << "=== END TEST " << myCount << std::endl;
-            //std::cout << "H INTERVALS:\n" << s->getCounterpoint_1()->getHIntervals() << std::endl;
-        }
-        delete best;      // keep only the best-so-far
-        best = s;
-        myCount++;
-    }
-
-    if (best) {
-        std::cout << "BEST (" << myCount << "): " << best->getSolutionArray() << std::endl;
-        delete best;
-    }
-    
-    delete problem;
-
-}
-
-static std::vector<int> extract_voice_notes(CounterpointProblem* best,
-                                            int n_voices,
-                                            int cfSize) {
-    auto arr = best->getSolutionArray();
-    std::vector<int> out;
-
-    int start = 0;
-    if (n_voices == 3) start = cfSize;
-    else if (n_voices == 4) start = 2 * cfSize;
-
-    out.reserve(arr.size() - start);
-    for (int i = start; i < arr.size(); ++i) out.push_back(arr[i].val());
-    return out;
-}
-
-void FuxTest::test_bryce_constrains_check(Species species, int n_voices, vector<int> v_types, vector<int> v_types_1sp){
-    cout << "===== test_bryce constrains check " << n_voices << "v " << species+1 << "sp " << " =====" << endl;
+void FuxTest::test_gen_constrains_check(Species species, int n_voices, vector<int> v_types, vector<int> v_types_1sp){
+    cout << "===== test_gen constrains check " << n_voices << "v " << species+1 << "sp " << " =====" << endl;
     spList = {species};
     int n_types_4v = 1;
     int n_types_3v = 1;
@@ -5044,40 +4950,58 @@ void FuxTest::test_bryce_constrains_check(Species species, int n_voices, vector<
     }
 }
 
-void FuxTest::test_bryce(){ // Generic tests
-    //test_bryce_constrains_check(FIFTH_SPECIES, 3, {-2,0,2}, {-2,0,2});
-    //test_bryce_constrains_check(FOURTH_SPECIES, 3, {-2,0,2}, {-2,0,2});
-    //test_bryce_3v_4sp();
-    // test_bryce_4v_4sp();
+void FuxTest::test_gen_custom(){ // Generic tests
+    cout << "===== test generation custom =====" << endl;
+    vector<pair<int,int>> cp_types = {{1,1},{1,2},{1,3},{2,2},{2,3},{3,3}};
+    
+    for (int sp = 1; sp < 6; sp++){
+        for (int main_type = 1; main_type < 4; main_type++){
+            for(int cp_type_idx = 0; cp_type_idx < cp_types.size(); cp_type_idx++){
+                pair<int,int> local_types = cp_types[cp_type_idx];
+
+                GenerationInput input;
+                input.cf_notes = {48, 50, 53, 52, 55, 53, 52, 50, 48};
+                input.species = {FIRST_SPECIES, FIRST_SPECIES, int_to_species(sp)};
+                input.v_type = {local_types.first, local_types.second, main_type};
+                input.verbose = true;
+                input.stagnation_ms = 0;
+                input.timeout_ms = 480000; // 8min
+                input.output_subdir = "bryce_gen";
+                input.preset_name = "bryce";
+                generate_counterpoint(input);
+            }
+        }
+    }
+    
 }
 
-void FuxTest::test_bryce_classic(){
-    cout << "===== test_bryce classic =====" << endl; 
-    test_bryce_2v_1sp();
-    test_bryce_2v_2sp(); // super long à partir de ~30 itérations
-    test_bryce_2v_3sp(); // super long à partir de ~30 itérations
-    // test_bryce_2v_4sp(); // super long à partir de ~20 itérations
-    test_bryce_3v_1sp(); // super long à partir de ~100 itérations
-    test_bryce_3v_2sp(); // super long à partir de ~700 itérations
-    test_bryce_3v_3sp(); // super long à partir de ~5000 itérations
-    // test_bryce_3v_4sp(); // super long à partir de ??
-    test_bryce_4v_1sp(); // super long à partir de ~15000 itérations
-    test_bryce_4v_2sp(); // super long à partir de ~50000 itérations
-    // test_bryce_4v_3sp(); // super long à partir de ~2000 itérations
-    // test_bryce_4v_4sp(); // super long à partir de ??
+void FuxTest::test_gen_classic(){
+    cout << "===== test generation classic =====" << endl; 
+    test_gen_2v_1sp();
+    test_gen_2v_2sp(); // super long à partir de ~30 itérations
+    test_gen_2v_3sp(); // super long à partir de ~30 itérations
+    // test_gen_2v_4sp(); // super long à partir de ~20 itérations
+    test_gen_3v_1sp(); // super long à partir de ~100 itérations
+    test_gen_3v_2sp(); // super long à partir de ~700 itérations
+    test_gen_3v_3sp(); // super long à partir de ~5000 itérations
+    // test_gen_3v_4sp(); // super long à partir de ??
+    test_gen_4v_1sp(); // super long à partir de ~15000 itérations
+    test_gen_4v_2sp(); // super long à partir de ~50000 itérations
+    // test_gen_4v_3sp(); // super long à partir de ~2000 itérations
+    // test_gen_4v_4sp(); // super long à partir de ??
 }
 
-void FuxTest::test_bryce_fullsp(){
-    cout << "===== test_bryce full sp =====" << endl;
-    test_bryce_3v_2sp_2sp(); // super long à partir de ~1200 itérations
-    test_bryce_3v_3sp_3sp(); // super long à partir de ~5500 itérations
-    test_bryce_4v_2sp_2sp_2sp(); // super long à partir de ~20000 itérations
+void FuxTest::test_gen_multi(){
+    cout << "===== test generation full sp =====" << endl;
+    test_gen_3v_2sp_2sp(); // super long à partir de ~1200 itérations
+    test_gen_3v_3sp_3sp(); // super long à partir de ~5500 itérations
+    test_gen_4v_2sp_2sp_2sp(); // super long à partir de ~20000 itérations
 }
 
-void FuxTest::test_bryce_all(){
-    cout << "===== test_bryce all =====" << endl; 
-    test_bryce_classic();
-    test_bryce_fullsp();
+void FuxTest::test_gen_all(){
+    cout << "===== test generation all =====" << endl; 
+    test_gen_classic();
+    test_gen_multi();
 }
 
 void FuxTest::test_sacha(){
@@ -5132,7 +5056,7 @@ void FuxTest::test_sacha(){
    cout << "===== test_sacha 4v 3sp =====" << endl;
    //test_sacha_4v_3sp();
 
-   // test_bryce_4v_3sp();
+   // test_gen_4v_3sp();
 }
 
 

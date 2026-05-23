@@ -38,8 +38,6 @@ static GenerationCase build_gc_from_api_input(const GenerationInput& input) {
     GenerationCase gc;
     gc.cf = input.cf_notes;
     gc.use_preset_cf = false;
-    if (!resolve_cf(gc, input.verbose)) { cerr << "  Error in cf resolution !" << endl; }
-
     gc.n_voices = input.species.size()+1;
     gc.spList = input.species;
     gc.v_type = input.v_type;
@@ -51,6 +49,8 @@ static GenerationCase build_gc_from_api_input(const GenerationInput& input) {
     if (input.output_root != "") gc.output_root = input.output_root;
     if (input.output_subdir != "") gc.output_subdir = input.output_subdir;
 
+    // cf resolution & presets
+    if (!resolve_cf(gc, input.verbose)) { cerr << "  Error in cf resolution !" << endl; }
     if (!apply_preset(gc)){ cerr << "  Error in presets resolution !" << endl; }
 
     return gc;
@@ -59,4 +59,12 @@ static GenerationCase build_gc_from_api_input(const GenerationInput& input) {
 GenerationResult generate_counterpoint(const GenerationInput& input) {
     GenerationCase gc = build_gc_from_api_input(input);
     return Generations::run_generation_case(gc, input.save_outputs, input.verbose);
+}
+
+GenerationResult generate_counterpoint(vector<int> cf_notes, vector<Species> species, vector<int> v_type) {
+    GenerationInput input;
+    input.cf_notes = cf_notes;
+    input.species = species;
+    input.v_type = v_type;
+    return generate_counterpoint(input);
 }

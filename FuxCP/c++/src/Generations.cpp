@@ -69,6 +69,8 @@ static const int CHECKPOINT_INTERVAL = 1000;
 static string species_tag_for(const GenerationCase& gc) {
     string tag = to_string(gc.n_voices) + "voices_1";  // CF en première position
     for (int s : gc.spList) tag += "_" + to_string(s+1);
+    tag += "_vtype";
+    for (int s : gc.v_type) tag += "_" + to_string(s);
     return tag;
 }
 
@@ -446,13 +448,11 @@ GenerationResult Generations::run_generation_case(GenerationCase& gc, bool save_
         }
     } 
 
-    if (verbose){
-        if (gc.use_preset_cf) cout << "\n=== Génération : cf" << gc.cf_id << " (" << gc.cf_name << ") | ";
-        else                  cout << "\n=== Génération : cf" << gc.cf_name << " | ";
-        cout     << species_tag << " | preset=" << gc.preset_name
-            << " | obj=" << obj_mode_short(gc.obj_mode)
-            << " | timeout=" << gc.timeout_ms << "ms | stagn=" << gc.stagnation_ms << "ms ===" << endl;
-    }
+    if (gc.use_preset_cf) cout << "\n=== Génération : cf" << gc.cf_id << " (" << gc.cf_name << ") | ";
+    else                  cout << "\n=== Génération : cf" << gc.cf_name << " | ";
+    cout << species_tag << " | preset=" << gc.preset_name
+        << " | obj=" << obj_mode_short(gc.obj_mode)
+        << " | timeout=" << gc.timeout_ms << "ms | stagn=" << gc.stagnation_ms << "ms ===" << endl;
     
     // Activation des contraintes musicales (par défaut toutes actives)
     fill(activeConstraints.begin(), activeConstraints.end(), true);
