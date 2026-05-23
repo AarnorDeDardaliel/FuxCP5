@@ -658,6 +658,7 @@ void noSuccessiveSamePerfectIntervalOnIndices(Home home, Part* p1, Part* p2, vec
     int nIndices = indices.size();
     bool p1Fourth = p1->getSpecies() == FOURTH_SPECIES;
     bool p2Fourth = p2->getSpecies() == FOURTH_SPECIES;
+    if (p1Fourth || p2Fourth) { return; } // Authorized with 4th species (Bitsch, rule 43, p.25)
 
     IntVarArray notes1 = p1->getNotes();
     IntVarArray notes2 = p2->getNotes();
@@ -665,19 +666,19 @@ void noSuccessiveSamePerfectIntervalOnIndices(Home home, Part* p1, Part* p2, vec
         notes1 = expandCantusNotes(home, notes1);
     }
 
-    // Building intervals array --> For fourth species, compare the syncopated note (index +2) with the structurally relevant note of the other voice, measure by measure.
+    // Building intervals array
     IntVarArray hIntervals12(home, nIndices, 0, MAJOR_SEVENTH);
     for (int i = 0; i < nIndices-1; i++) {
-        int idx1 = p1Fourth ? indices[i]+2 : indices[i];
-        int idx2 = p2Fourth ? indices[i]+2 : indices[i];
-        rel(home, hIntervals12[i] == (abs(notes1[idx1] - notes2[idx2]) % 12));
+        int idx = indices[i];
+        rel(home, hIntervals12[i] == (abs(notes1[idx] - notes2[idx]) % 12));
     }
     rel(home, hIntervals12[nIndices-1] == (abs(notes1[indices.back()] - notes2[indices.back()]) % 12)); // Final note
 
-    // Constraint
+    // Constraint (Bitsch, rule 42, p.24)
     for (int i = 0; i < hIntervals12.size()-1; i++) {
         rel(home, expr(home, hIntervals12[i] == UNISSON), BOT_AND, expr(home, hIntervals12[i+1] == UNISSON), 0); // No successive unisson
         rel(home, expr(home, hIntervals12[i] == PERFECT_FIFTH), BOT_AND, expr(home, hIntervals12[i+1] == PERFECT_FIFTH), 0); // No successive fifth
+        rel(home, expr(home, hIntervals12[i] == TRITONE), BOT_AND, expr(home, hIntervals12[i+1] == PERFECT_FIFTH), 0); // No  fifth --> perfect fifth
     }
 }
 
@@ -688,28 +689,14 @@ void P8_noSuccessiveSamePerfectInterval(Home home, vector<Part*> parts) {
             Part* p2 = parts[v2];
 
             // ----- successive beats -----
-            vector<int> thesisIndices = createRangeVector(0, p1->getNMeasures(), 4);
-            noSuccessiveSamePerfectIntervalOnIndices(home, p1, p2, thesisIndices);
-
-            // Checking again with arsis beats
-            vector<int> beatIndices;
-            int n_old = thesisIndices.size();
-            for (int i = 0; i < n_old-1; i++) {
-                beatIndices.push_back(thesisIndices[i]);
-                beatIndices.push_back(thesisIndices[i]+2);
-            }
-            beatIndices.push_back(thesisIndices[n_old-1]);
+            vector<int> beatIndices = createRangeVector(0, 2*(p1->getNMeasures()-1), 2); // thesis + arsis
+            beatIndices.push_back(4*p1->getNMeasures()-3); // last thesis
             noSuccessiveSamePerfectIntervalOnIndices(home, p1, p2, beatIndices);
 
             // ----- successive notes -----
             bool p1Third = p1->getSpecies() == THIRD_SPECIES;
             bool p2Third = p2->getSpecies() == THIRD_SPECIES;
-            bool p1Fourth = p1->getSpecies() == FOURTH_SPECIES;
-            bool p2Fourth = p2->getSpecies() == FOURTH_SPECIES;
-
-            // If no 3d species, already taken care of in arsis or thesis
-            // If 4th species, doesn't really have sense
-            if ((p1Third || p2Third) && !p1Fourth && !p2Fourth){ 
+            if (p1Third || p2Third){ // If no 3d species, already taken care of in arsis or thesis
                 const int nMeasures = p1->getNMeasures();
                 vector<int> noteIndices = createRangeVector(0, nMeasures*4-3, 1);
                 noSuccessiveSamePerfectIntervalOnIndices(home, p1, p2, noteIndices);
@@ -764,13 +751,8 @@ void P9_noSimultaneousRepetition(Home home, vector<Part*> parts) {
             noSimultaneousRepetitionOnIndices(home, p1, p2, thesisIndices);
 
             // Checking again with arsis beats
-            vector<int> beatIndices;
-            int n_old = thesisIndices.size();
-            for (int i = 0; i < n_old-1; i++) {
-                beatIndices.push_back(thesisIndices[i]);
-                beatIndices.push_back(thesisIndices[i]+2);
-            }
-            beatIndices.push_back(thesisIndices[n_old-1]);
+            vector<int> beatIndices = createRangeVector(0, 2*(p1->getNMeasures()-1), 2); // thesis + arsis
+            beatIndices.push_back(4*p1->getNMeasures()-3); // last thesis
             noSimultaneousRepetitionOnIndices(home, p1, p2, beatIndices);
 
             // ----- successive notes -----
