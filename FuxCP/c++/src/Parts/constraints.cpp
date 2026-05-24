@@ -816,11 +816,23 @@ void P8_noSuccessiveSamePerfectInterval(Home home, vector<Part*> parts) {
 }
 
 void noSimultaneousRepetitionOnIndices(Home home, Part* p1, Part* p2, const vector<int>& indices) {
+    // P9 forbids two voices from BOTH repeating their note across the same step (a fully
+    // static instant). The check compares note VALUES at successive beats, so it cannot tell a
+    // re-articulated note (a real repetition) from a merely SUSTAINED one (a held cantus-firmus
+    // whole note, or a tie across the bar). Species that rely on ties trip this false positive:
+    //   - 4th species: the suspension tie is mandatory (arsis_m == downbeat_{m+1}); against the
+    //     held CF the AND-of-repetitions is true on every measure -> infeasible everywhere.
+    //   - 5th species: ties are optional, so it stays feasible, but P9 effectively bans every
+    //     suspension against the (always held) CF, suppressing legitimate florid writing.
+    // Both must therefore be exempt. (Authors already noted "If 4th species, doesn't really have
+    // sense"; the same reasoning extends to the suspensions of 5th species.)
+    Species s1 = (Species)p1->getSpecies(), s2 = (Species)p2->getSpecies();
+    if (s1 == FOURTH_SPECIES || s2 == FOURTH_SPECIES ||
+        s1 == FIFTH_SPECIES  || s2 == FIFTH_SPECIES) return;
+
     IntVarArray notes1 = p1->getNotes();
     IntVarArray notes2 = p2->getNotes();
-    bool p1Fourth = p1->getSpecies() == FOURTH_SPECIES;
-    bool p2Fourth = p2->getSpecies() == FOURTH_SPECIES;
-    
+
     if (notes1.size() != notes2.size()){ // p1 is cantus firmus
         notes1 = expandCantusNotes(home, notes1);
     }
@@ -832,17 +844,8 @@ void noSimultaneousRepetitionOnIndices(Home home, Part* p1, Part* p2, const vect
         BoolVar p1Repeats(home, 0, 1);
         BoolVar p2Repeats(home, 0, 1);
 
-        if (!p1Fourth){
-            rel(home, notes1[t1], IRT_EQ, notes1[t2], Reify(p1Repeats));
-        } else {
-            rel(home, notes1[t1+2], IRT_EQ, notes1[min(t2+2, indices.back())], Reify(p1Repeats));
-        }
-
-        if (!p2Fourth){
-            rel(home, notes2[t1], IRT_EQ, notes2[t2], Reify(p2Repeats));
-        } else {
-            rel(home, notes2[t1+2], IRT_EQ, notes2[min(t2+2, indices.back())], Reify(p2Repeats));
-        }
+        rel(home, notes1[t1], IRT_EQ, notes1[t2], Reify(p1Repeats));
+        rel(home, notes2[t1], IRT_EQ, notes2[t2], Reify(p2Repeats));
 
         rel(home, p1Repeats, BOT_AND, p2Repeats, 0); // Hard forbid
     }
