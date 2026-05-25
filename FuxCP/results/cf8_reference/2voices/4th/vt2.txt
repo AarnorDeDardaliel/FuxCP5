@@ -1,0 +1,66 @@
+========================================
+  RÉSULTATS : 2voices_1_4_vtype_2
+========================================
+
+--- Configuration ---
+CF                : 8 (Do Reference Grave)
+Gamme indicative  : Majeur
+Preset            : bryce
+Borrow mode       : 0
+Mode d'objectif   : pond (score lex pondéré)
+Nombre de voix    : 2
+Espèces (incl CF) : 1 3
+v_type            : 2
+Timeout max (ms)  : 180000
+Stagnation (ms)   : 0
+Cantus firmus     : 48 50 53 52 55 53 52 50 48
+                    Do3 Ré3 Fa3 Mi3 Sol3 Fa3 Mi3 Ré3 Do3
+
+--- Métriques de recherche ---
+Temps total (ms)            : 123269.0
+Temps 1ère solution (ms)    : 116892.4
+Temps dernière amélio. (ms) : 123206.9
+Solutions trouvées          : 12
+Améliorations de coût       : 12
+Score pondéré           : 1109.0
+Terminaison                 : EXHAUSTIVE (optimal)
+
+--- Statistiques Gecode ---
+Nœuds      : 2620403
+Échecs     : 1310190
+Restarts   : 0
+Propagat.  : 406866944
+Profondeur : 56
+
+--- Améliorations ---
+    Sol#    Temps (ms)       Coût
+       1      116892.4      2923.0
+       2      116895.1      2811.0
+       3      116897.1      2295.0
+       4      116898.9      2034.0
+       5      116899.1      1935.0
+       6      116901.6      1845.0
+       7      116902.7      1568.0
+       8      123171.8      1509.0
+       9      123191.2      1454.0
+      10      123198.3      1232.0
+      11      123204.5      1120.0
+      12      123206.9      1109.0
+
+--- Évolution du vecteur de coûts (toutes les solutions BAB) ---
+    Sol#    Temps (ms)        Cost  Vecteur lex
+       1      116892.4      2923.0  2857, 0, 4, 3, 0, 16, 1, 42
+       2      116895.1      2811.0  2747, 0, 5, 2, 0, 14, 0, 43
+       3      116897.1      2295.0  2256, 0, 8, 1, 0, 22, 0, 8
+       4      116898.9      2034.0  1997, 0, 7, 2, 0, 14, 0, 14
+       5      116899.1      1935.0  1901, 0, 7, 2, 0, 14, 0, 11
+       6      116901.6      1845.0  1812, 0, 6, 2, 0, 14, 0, 11
+       7      116902.7      1568.0  1542, 0, 6, 1, 0, 14, 0, 5
+       8      123171.8      1509.0  1481, 0, 3, 2, 0, 14, 0, 9
+       9      123191.2      1454.0  1427, 0, 1, 4, 0, 14, 0, 8
+      10      123198.3      1232.0  1211, 0, 3, 1, 0, 14, 0, 3
+      11      123204.5      1120.0  1101, 0, 3, 0, 0, 14, 0, 2
+      12      123206.9      1109.0  1090, 0, 2, 1, 0, 14, 0, 2
+
+--- Solution (notes MIDI) ---
+72 72 71 71 69 69 67 67 64 64 62 62 60 60 59 55 

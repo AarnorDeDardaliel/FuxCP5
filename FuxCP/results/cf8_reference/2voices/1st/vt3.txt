@@ -1,0 +1,71 @@
+========================================
+  RÉSULTATS : 2voices_1_1_vtype_3
+========================================
+
+--- Configuration ---
+CF                : 8 (Do Reference Grave)
+Gamme indicative  : Majeur
+Preset            : bryce
+Borrow mode       : 0
+Mode d'objectif   : pond (score lex pondéré)
+Nombre de voix    : 2
+Espèces (incl CF) : 1 0
+v_type            : 3
+Timeout max (ms)  : 180000
+Stagnation (ms)   : 0
+Cantus firmus     : 48 50 53 52 55 53 52 50 48
+                    Do3 Ré3 Fa3 Mi3 Sol3 Fa3 Mi3 Ré3 Do3
+
+--- Métriques de recherche ---
+Temps total (ms)            : 145.7
+Temps 1ère solution (ms)    : 3.8
+Temps dernière amélio. (ms) : 69.1
+Solutions trouvées          : 15
+Améliorations de coût       : 14
+Score pondéré           : 656.0
+Terminaison                 : EXHAUSTIVE (optimal)
+
+--- Statistiques Gecode ---
+Nœuds      : 2797
+Échecs     : 1384
+Restarts   : 0
+Propagat.  : 1169477
+Profondeur : 31
+
+--- Améliorations ---
+    Sol#    Temps (ms)       Coût
+       1           3.8      1460.0
+       2           5.1      1368.0
+       3           5.6      1315.0
+       4          22.0      1268.0
+       6          31.8      1224.0
+       7          41.6      1190.0
+       8          47.2      1189.0
+       9          48.6      1127.0
+      10          51.5      1102.0
+      11          52.1      1005.0
+      12          53.4       875.0
+      13          54.6       813.0
+      14          56.9       779.0
+      15          69.1       656.0
+
+--- Évolution du vecteur de coûts (toutes les solutions BAB) ---
+    Sol#    Temps (ms)        Cost  Vecteur lex
+       1           3.8      1460.0  1434, 3, 1, 0, 8, 7, 7
+       2           5.1      1368.0  1342, 2, 1, 0, 6, 9, 8
+       3           5.6      1315.0  1292, 2, 1, 0, 10, 5, 5
+       4          22.0      1268.0  1246, 3, 1, 0, 6, 7, 5
+       5          24.6      1268.0  1243, 2, 1, 0, 4, 8, 10
+       6          31.8      1224.0  1201, 2, 1, 0, 6, 6, 8
+       7          41.6      1190.0  1165, 2, 1, 0, 2, 6, 14
+       8          47.2      1189.0  1164, 2, 0, 0, 2, 10, 11
+       9          48.6      1127.0  1106, 2, 0, 0, 6, 8, 5
+      10          51.5      1102.0  1078, 2, 0, 0, 2, 6, 14
+      11          52.1      1005.0  986, 2, 0, 0, 4, 8, 5
+      12          53.4       875.0  856, 2, 0, 0, 0, 6, 11
+      13          54.6       813.0  798, 2, 0, 0, 4, 4, 5
+      14          56.9       779.0  765, 2, 1, 0, 2, 4, 5
+      15          69.1       656.0  644, 2, 0, 0, 2, 4, 4
+
+--- Solution (notes MIDI) ---
+60 65 69 67 64 62 60 59 60 
