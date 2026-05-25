@@ -8,8 +8,8 @@
  * Third species general constructor
  */
 ThirdSpeciesCounterpoint::ThirdSpeciesCounterpoint(Home home, int size, vector<int> cf,int lb, int ub, int mSpec, Stratum* low, CantusFirmus* c, 
-    int v_type, vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV):
-    FirstSpeciesCounterpoint(home, size, cf, lb, ub, THIRD_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV)
+    int v_type, vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV, const vector<double>& melodicShape, const CostModel* costModel, int voiceIndex):
+    FirstSpeciesCounterpoint(home, size, cf, lb, ub, THIRD_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV, melodicShape, costModel, voiceIndex)
 {
     thirdSpeciesNotesCp = IntVarArray(home, notes.size(), IntSet(IntArgs(domain)));
     if(borrowMode==1){
@@ -18,10 +18,10 @@ ThirdSpeciesCounterpoint::ThirdSpeciesCounterpoint(Home home, int size, vector<i
     rel(home, thirdSpeciesNotesCp, IRT_EQ, notes.slice(0,4/notesPerMeasure.at(THIRD_SPECIES),(notes.size())));
 
     thirdSpeciesHarmonicIntervals = IntVarArray(home, h_intervals.size(), -PERFECT_OCTAVE, PERFECT_OCTAVE);
-    // rel(home, thirdSpeciesHarmonicIntervals, IRT_EQ, h_intervals);
-    // for(int i = 0; i < thirdSpeciesHarmonicIntervals.size(); i++){
-    //     rel(home, (thirdSpeciesHarmonicIntervals[i])==((thirdSpeciesNotesCp[i]-low->getNotes()[floor(i/4)*4])%12));
-    // }
+    for(int i = 0; i < thirdSpeciesHarmonicIntervals.size(); i++){
+        rel(home, (thirdSpeciesHarmonicIntervals[i]) == 
+            ((thirdSpeciesNotesCp[i] - low->getNotes()[floor(i/4)*4]) % 12));
+    }
     
     
     thirdSpeciesMelodicIntervals = IntVarArray(home, m_intervals_brut.size(), -MAX_STEP, MAX_STEP);
@@ -136,9 +136,21 @@ ThirdSpeciesCounterpoint::ThirdSpeciesCounterpoint(Home home, int size, vector<i
 
     }
 
-    cambiataCostArray = IntVarArray(home, nMeasures-1, IntSet({0, cambiataCost}));
+    cambiataCostArray = IntVarArray(home, nMeasures-1, 0, cambiataCost);
 
-    m2ZeroArray = IntVarArray(home, thirdSpeciesMelodicIntervals.size()-2, IntSet({0, m2ZeroCost}));
+    if (!activeConstraints[SP3_3H3]) {
+        for(int i = 0; i < cambiataCostArray.size(); i++){
+            rel(home, cambiataCostArray[i], IRT_EQ, 0);
+        }
+    }
+
+    m2ZeroArray = IntVarArray(home, thirdSpeciesMelodicIntervals.size()-2, 0, m2ZeroCost);
+
+    if (!activeConstraints[SP3_3M1]) {
+        for(int i = 0; i < m2ZeroArray.size(); i++){
+            rel(home, m2ZeroArray[i], IRT_EQ, 0);
+        }
+    }
     
     //DISABELED
     // //3.H1 : five consecutive notes by joint degree implies that the first and the third note are consonants
@@ -162,7 +174,7 @@ ThirdSpeciesCounterpoint::ThirdSpeciesCounterpoint(Home home, int size, vector<i
     //i + i+1 + i+2
     if (activeConstraints[SP3_3M1]) {
         for(int i = 0; i < m2ZeroArray.size(); i++){
-            rel(home, ((thirdSpeciesMelodicIntervals[i]+thirdSpeciesMelodicIntervals[i+1]+thirdSpeciesMelodicIntervals[i+2])==0) >> (m2ZeroArray[i]==m2ZeroCost));
+            rel(home, ((thirdSpeciesMelodicIntervals[i]+thirdSpeciesMelodicIntervals[i+1]+thirdSpeciesMelodicIntervals[i+2])==0) >> (m2ZeroArray[i]==getM2ZeroCostAt(i)));
             rel(home, ((thirdSpeciesMelodicIntervals[i]+thirdSpeciesMelodicIntervals[i+1]+thirdSpeciesMelodicIntervals[i+2])!=0) >> (m2ZeroArray[i]==0));
         }   
     }
@@ -230,8 +242,8 @@ ThirdSpeciesCounterpoint::ThirdSpeciesCounterpoint(Home home, int size, vector<i
  * 2 VOICES CONSTRUCTOR
  */
 ThirdSpeciesCounterpoint::ThirdSpeciesCounterpoint(Home home, int size, vector<int> cf,int lb, int ub, Stratum* low, CantusFirmus* c, int v_type,
-    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV):
-    ThirdSpeciesCounterpoint(home, size, cf, lb, ub, THIRD_SPECIES, low, c, v_type, m_costs,g_costs, s_costs, bm, nV)
+    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV, const vector<double>& melodicShape, const CostModel* costModel, int voiceIndex):
+    ThirdSpeciesCounterpoint(home, size, cf, lb, ub, THIRD_SPECIES, low, c, v_type, m_costs,g_costs, s_costs, bm, nV, melodicShape, costModel, voiceIndex)
 {
     //3.H4 : in the penultimate measure, if the cantusFirmus is in the upper part, then the h_interval of the first note should be a minor third
     // REPLACED in twoVoiceCounterpoint.cpp 
@@ -239,7 +251,7 @@ ThirdSpeciesCounterpoint::ThirdSpeciesCounterpoint(Home home, int size, vector<i
     //     rel(home, (getIsNotLowest()[getIsNotLowest().size()-2]==0) >> 
     //     (expr(home, abs(h_intervals[h_intervals.size()-5]))==MINOR_THIRD));
     // }
-    varietyCostArray = IntVarArray(home, 3*(thirdSpeciesHarmonicIntervals.size()-2), IntSet({0, varietyCost}));
+    varietyCostArray = IntVarArray(home, 3*(thirdSpeciesHarmonicIntervals.size()-2), 0, varietyCost);
 
     costs = IntVarArray(home, 8, 0, 10000);
     cost_names = {"fifth", "octave", "motion", "melodic", "borrow", "cambiata", "m2", "variety"};
@@ -266,11 +278,11 @@ ThirdSpeciesCounterpoint::ThirdSpeciesCounterpoint(Home home, int size, vector<i
  * 3 VOICES CONSTRUCTOR
  */
 ThirdSpeciesCounterpoint::ThirdSpeciesCounterpoint(Home home, int size, vector<int> cf,int lb, int ub, Stratum* low, CantusFirmus* c, int v_type,
-    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2):
-    ThirdSpeciesCounterpoint(home, size, cf, lb, ub, THIRD_SPECIES, low, c, v_type, m_costs,g_costs, s_costs, bm, nV2)
+    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2, const vector<double>& melodicShape, const CostModel* costModel, int voiceIndex):
+    ThirdSpeciesCounterpoint(home, size, cf, lb, ub, THIRD_SPECIES, low, c, v_type, m_costs,g_costs, s_costs, bm, nV2, melodicShape, costModel, voiceIndex)
 {
-    varietyCostArray = IntVarArray(home, 3*(thirdSpeciesHarmonicIntervals.size()-2), IntSet({0, varietyCost}));
-    directCostArray = IntVarArray(home, thirdSpeciesMotions.size()-1,IntSet({0, directMoveCost}));
+    varietyCostArray = IntVarArray(home, 3*(thirdSpeciesHarmonicIntervals.size()-2), 0, varietyCost);
+    directCostArray = IntVarArray(home, thirdSpeciesMotions.size()-1, 0, directMoveCost);
 
     //1.H7,H8 adapted
     if (activeConstraints[SP3_1H7_3V]) {
@@ -281,11 +293,11 @@ ThirdSpeciesCounterpoint::ThirdSpeciesCounterpoint(Home home, int size, vector<i
 
     //3.H6 : harmonic triad should be used on the second or third beat
     if (activeConstraints[SP3_3H6_3V]) {
-        thirdHTriadArray = IntVarArray(home, nMeasures-1, IntSet({0, triad3rdCost}));
+        thirdHTriadArray = IntVarArray(home, nMeasures-1, 0, triad3rdCost);
         for(int i = 0; i < thirdHTriadArray.size(); i++){
             rel(home, ((thirdSpeciesHarmonicIntervals[(i*4)+1]!=UNISSON&&thirdSpeciesHarmonicIntervals[(i*4)+1]!=MINOR_THIRD&&thirdSpeciesHarmonicIntervals[(i*4)+1]!=MAJOR_THIRD&&thirdSpeciesHarmonicIntervals[(i*4)+1]!=PERFECT_FIFTH)&&
                 (thirdSpeciesHarmonicIntervals[(i*4)+2]!=UNISSON&&thirdSpeciesHarmonicIntervals[(i*4)+2]!=MINOR_THIRD&&thirdSpeciesHarmonicIntervals[(i*4)+2]!=MAJOR_THIRD&&thirdSpeciesHarmonicIntervals[(i*4)+2]!=PERFECT_FIFTH)) >> 
-                (thirdHTriadArray[i]==triad3rdCost));
+                (thirdHTriadArray[i]==getTriad3rdCostAt(i)));
             rel(home, ((thirdSpeciesHarmonicIntervals[(i*4)+1]==UNISSON||thirdSpeciesHarmonicIntervals[(i*4)+1]==MINOR_THIRD||thirdSpeciesHarmonicIntervals[(i*4)+1]==MAJOR_THIRD||thirdSpeciesHarmonicIntervals[(i*4)+1]==PERFECT_FIFTH)||
                 (thirdSpeciesHarmonicIntervals[(i*4)+2]==UNISSON||thirdSpeciesHarmonicIntervals[(i*4)+2]==MINOR_THIRD||thirdSpeciesHarmonicIntervals[(i*4)+2]==MAJOR_THIRD||thirdSpeciesHarmonicIntervals[(i*4)+2]==PERFECT_FIFTH)) >> 
                 (thirdHTriadArray[i]==0));
@@ -297,7 +309,7 @@ ThirdSpeciesCounterpoint::ThirdSpeciesCounterpoint(Home home, int size, vector<i
         for(int j = 0; j < firstSpeciesMotions.size()-1; j++){
             //set a cost when it is reached through direct motion, it is 0 when not
             rel(home, (thirdSpeciesMotions[j]==2&&(firstSpeciesHarmonicIntervals[j+1]==0||firstSpeciesHarmonicIntervals[j+1]==7))>>
-                (directCostArray[j]==directMoveCost));
+                (directCostArray[j]==getDirectMoveCostAt(j)));
             rel(home, (thirdSpeciesMotions[j]!=2||(firstSpeciesHarmonicIntervals[j+1]!=0&&firstSpeciesHarmonicIntervals[j+1]!=7))>>
                 (directCostArray[j]==0));
         }
@@ -332,11 +344,11 @@ ThirdSpeciesCounterpoint::ThirdSpeciesCounterpoint(Home home, int size, vector<i
  * 4 VOICES CONSTRUCTOR
  */
 ThirdSpeciesCounterpoint::ThirdSpeciesCounterpoint(Home home, int size, vector<int> cf,int lb, int ub, Stratum* low, CantusFirmus* c, int v_type,
-    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2, int nV3):
-    ThirdSpeciesCounterpoint(home, size, cf, lb, ub, THIRD_SPECIES, low, c, v_type, m_costs,g_costs, s_costs, bm, nV3)
+    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2, int nV3, const vector<double>& melodicShape, const CostModel* costModel, int voiceIndex):
+    ThirdSpeciesCounterpoint(home, size, cf, lb, ub, THIRD_SPECIES, low, c, v_type, m_costs,g_costs, s_costs, bm, nV3, melodicShape, costModel, voiceIndex)
 {
-    varietyCostArray = IntVarArray(home, 3*(thirdSpeciesHarmonicIntervals.size()-2), IntSet({0, varietyCost}));
-    directCostArray = IntVarArray(home, thirdSpeciesMotions.size()-1,IntSet({0, 2, directMoveCost}));
+    varietyCostArray = IntVarArray(home, 3*(thirdSpeciesHarmonicIntervals.size()-2), 0, varietyCost);
+    directCostArray = IntVarArray(home, thirdSpeciesMotions.size()-1, 0, directMoveCost);
 
     //1.H7,H8 adapted
     if (activeConstraints[SP3_1H7_4V]) {
@@ -346,11 +358,11 @@ ThirdSpeciesCounterpoint::ThirdSpeciesCounterpoint(Home home, int size, vector<i
     
     //3.H6 : harmonic triad should be used on the second or third beat
     if (activeConstraints[SP3_3H6_4V]) {
-        thirdHTriadArray = IntVarArray(home, nMeasures-1, IntSet({0, triad3rdCost}));
+        thirdHTriadArray = IntVarArray(home, nMeasures-1, 0, triad3rdCost);
         for(int i = 0; i < thirdHTriadArray.size(); i++){
             rel(home, ((thirdSpeciesHarmonicIntervals[(i*4)+1]!=UNISSON&&thirdSpeciesHarmonicIntervals[(i*4)+1]!=MINOR_THIRD&&thirdSpeciesHarmonicIntervals[(i*4)+1]!=MAJOR_THIRD&&thirdSpeciesHarmonicIntervals[(i*4)+1]!=PERFECT_FIFTH)&&
                 (thirdSpeciesHarmonicIntervals[(i*4)+2]!=UNISSON&&thirdSpeciesHarmonicIntervals[(i*4)+2]!=MINOR_THIRD&&thirdSpeciesHarmonicIntervals[(i*4)+2]!=MAJOR_THIRD&&thirdSpeciesHarmonicIntervals[(i*4)+2]!=PERFECT_FIFTH)) >> 
-                (thirdHTriadArray[i]==triad3rdCost));
+                (thirdHTriadArray[i]==getTriad3rdCostAt(i)));
             rel(home, ((thirdSpeciesHarmonicIntervals[(i*4)+1]==UNISSON||thirdSpeciesHarmonicIntervals[(i*4)+1]==MINOR_THIRD||thirdSpeciesHarmonicIntervals[(i*4)+1]==MAJOR_THIRD||thirdSpeciesHarmonicIntervals[(i*4)+1]==PERFECT_FIFTH)||
                 (thirdSpeciesHarmonicIntervals[(i*4)+2]==UNISSON||thirdSpeciesHarmonicIntervals[(i*4)+2]==MINOR_THIRD||thirdSpeciesHarmonicIntervals[(i*4)+2]==MAJOR_THIRD||thirdSpeciesHarmonicIntervals[(i*4)+2]==PERFECT_FIFTH)) >> 
                 (thirdHTriadArray[i]==0));
@@ -362,7 +374,7 @@ ThirdSpeciesCounterpoint::ThirdSpeciesCounterpoint(Home home, int size, vector<i
         for(int j = 0; j < firstSpeciesMotions.size()-1; j++){
             //set a cost when it is reached through direct motion, it is 0 when not
             rel(home, (thirdSpeciesMotions[j]==2&&(firstSpeciesHarmonicIntervals[j+1]==0||firstSpeciesHarmonicIntervals[j+1]==7))>>
-                (directCostArray[j]==directMoveCost));
+                (directCostArray[j]==getDirectMoveCostAt(j)));
             rel(home, (thirdSpeciesMotions[j]!=2||(firstSpeciesHarmonicIntervals[j+1]!=0&&firstSpeciesHarmonicIntervals[j+1]!=7))>>
                 (directCostArray[j]==0));
         }

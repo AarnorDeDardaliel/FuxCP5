@@ -58,16 +58,16 @@ public:
      * @param nV the number of voices - as it is a 2 voice constructor, this parameter contains the number of voices
      */
     FifthSpeciesCounterpoint(Home home, int nMes, vector<int> cf, int lb, int ub, Species mSpecies, Stratum* low, CantusFirmus* c,  int v_type
-    , vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV);
+    , vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV, const vector<double>& melodicShape = {}, const CostModel* costModel = nullptr, int voiceIndex = 0);
 
     FifthSpeciesCounterpoint(Home home, int nMes, vector<int> cf, int lb, int ub, Stratum* low, CantusFirmus* c,  int v_type, vector<int> m_costs
-    , vector<int> g_costs, vector<int> s_costs, int bm, int nV);
+    , vector<int> g_costs, vector<int> s_costs, int bm, int nV, const vector<double>& melodicShape = {}, const CostModel* costModel = nullptr, int voiceIndex = 0);
 
     FifthSpeciesCounterpoint(Home home, int nMes, vector<int> cf, int lb, int ub, Stratum* low, CantusFirmus* c,  int v_type, vector<int> m_costs
-    , vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2);
+    , vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2, const vector<double>& melodicShape = {}, const CostModel* costModel = nullptr, int voiceIndex = 0);
 
     FifthSpeciesCounterpoint(Home home, int nMes, vector<int> cf, int lb, int ub, Stratum* low, CantusFirmus* c,  int v_type, vector<int> m_costs
-    , vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2, int nV3);
+    , vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2, int nV3, const vector<double>& melodicShape = {}, const CostModel* costModel = nullptr, int voiceIndex = 0);
 
     /**
      * This function returns a string with the characteristics of the counterpoint. It calls the to_string() method from

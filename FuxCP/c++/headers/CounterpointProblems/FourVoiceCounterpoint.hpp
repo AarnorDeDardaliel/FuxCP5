@@ -11,6 +11,7 @@
 #include "../Parts/SecondSpeciesCounterpoint.hpp"
 #include "../Parts/ThirdSpeciesCounterpoint.hpp"
 #include "../Parts/CantusFirmus.hpp"
+#include "../CostModel.hpp"
 
 /**
  * This class models a counterpoint problem with 4 voices.
@@ -28,9 +29,16 @@ public:
      * @param k the key of the score. it takes values from the notes in headers/Utilities.hpp
      * @param lb the lowest note possible for the counterpoint in MIDI
      * @param ub the highest note possible for the counterpoint in MIDI
+     * @param melodicShape a vector of doubles representing the desired melodic shape
      */
     FourVoiceCounterpoint(vector<int> cf, vector<Species> sp, vector<int> v_type, vector<int> m_costs, vector<int> g_costs, 
-        vector<int> s_costs, vector<int> imp, int bm, ObjectiveMode objMode = OBJECTIVE_LEX);
+        vector<int> s_costs, vector<int> imp, int bm, ObjectiveMode objMode = OBJECTIVE_LEX, const vector<double>& melodicShape = {});
+
+    // Nouvelle signature — Dorian Genon
+    FourVoiceCounterpoint(vector<int> cf, vector<Species> sp, vector<int> v_type,
+        const CostModel& costModel,
+        vector<int> imp, int bm,
+        ObjectiveMode objMode = OBJECTIVE_LEX);    
 
     FourVoiceCounterpoint(FourVoiceCounterpoint& s);
     IntLexMinimizeSpace* copy() override; 

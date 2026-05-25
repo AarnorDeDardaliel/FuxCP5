@@ -8,8 +8,8 @@
  * GENERAL CONSTRUCTOR
  */
 FourthSpeciesCounterpoint::FourthSpeciesCounterpoint(Home home, int nMes, vector<int> cf, int lb, int ub, Species mSpecies, Stratum* low, CantusFirmus* c,
-     int v_type, vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV):
-    Part(home, nMes, mSpecies, cf, lb, ub, v_type, m_costs, g_costs, s_costs, nV, bm)
+     int v_type, vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV, const vector<double>& melodicShape, const CostModel* costModel, int voiceIndex):
+    Part(home, nMes, mSpecies, cf, lb, ub, v_type, m_costs, g_costs, s_costs, nV, bm, melodicShape, costModel, voiceIndex)
 {
 
     for(int i = lowerBound; i <= upperBound; i++){
@@ -112,19 +112,19 @@ FourthSpeciesCounterpoint::FourthSpeciesCounterpoint(Home home, int nMes, vector
     }
 
     //create off_cost array
-    offCostArray = IntVarArray(home, is_off.size(), IntSet({0, borrowCost}));
+    offCostArray = IntVarArray(home, is_off.size(), 0, borrowCost);
     //set the cost for borrowing this note
     for(int i = 0; i < is_off.size(); i++){
         rel(home, (is_off[i]==0) >> (offCostArray[i]==0));
-        rel(home, (is_off[i]==1) >> (offCostArray[i]==borrowCost));
+        rel(home, (is_off[i]==1) >> (offCostArray[i]==getBorrowCostAt(i)));
     }
 
-    melodicDegreeCost = IntVarArray(home, m_intervals_brut.size(), IntSet({secondCost, thirdCost, fourthCost, tritoneCost, fifthCost, 
+    melodicDegreeCost = IntVarArray(home, m_intervals_brut.size(), 0, std::max({secondCost, thirdCost, fourthCost, tritoneCost, fifthCost, 
         sixthCost, seventhCost, octaveCost}));
     
     // create pefectConsArray
-    fifthCostArray = IntVarArray(home, h_intervals.size(), IntSet({0, h_fifthCost}));
-    octaveCostArray = IntVarArray(home, h_intervals.size(), IntSet({0, h_octaveCost}));
+    fifthCostArray  = IntVarArray(home, h_intervals.size(), 0, h_fifthCost);
+    octaveCostArray = IntVarArray(home, h_intervals.size(), 0, h_octaveCost);
     
     isConsonance = BoolVarArray(home, h_intervals.size(), 0, 1);
     for(int i = 0; i < isConsonance.size(); i++){
@@ -149,20 +149,20 @@ FourthSpeciesCounterpoint::FourthSpeciesCounterpoint(Home home, int nMes, vector
     if (activeConstraints[SP4_G7]) {
         int idx = 0;
         for(int i = 0; i < m_intervals_brut.size(); i+=4/notesPerMeasure.at(FOURTH_SPECIES)){
-            rel(home, (abs(m_intervals_brut[i])<MINOR_THIRD) >> (melodicDegreeCost[i]==secondCost));
-            rel(home, (abs(m_intervals_brut[i])==MINOR_THIRD || abs(m_intervals_brut[i])==MAJOR_THIRD) >> (melodicDegreeCost[i]==thirdCost));
-            rel(home, (abs(m_intervals_brut[i])==PERFECT_FOURTH) >> (melodicDegreeCost[i]==fourthCost));
-            rel(home, (abs(m_intervals_brut[i])==TRITONE) >> (melodicDegreeCost[i]==tritoneCost));
-            rel(home, (abs(m_intervals_brut[i])==PERFECT_FIFTH) >> (melodicDegreeCost[i]==fifthCost));
-            rel(home, (abs(m_intervals_brut[i])==MINOR_SIXTH || abs(m_intervals_brut[i])==MAJOR_SIXTH) >> (melodicDegreeCost[i]==sixthCost));
-            rel(home, (abs(m_intervals_brut[i])==MINOR_SEVENTH || abs(m_intervals_brut[i])==MAJOR_SEVENTH) >> (melodicDegreeCost[i]==seventhCost));
-            rel(home, (abs(m_intervals_brut[i])==PERFECT_OCTAVE) >> (melodicDegreeCost[i]==octaveCost));
+            rel(home, (abs(m_intervals_brut[i])<MINOR_THIRD) >> (melodicDegreeCost[i]==getSecondCostAt(idx)));
+            rel(home, (abs(m_intervals_brut[i])==MINOR_THIRD || abs(m_intervals_brut[i])==MAJOR_THIRD) >> (melodicDegreeCost[i]==getThirdCostAt(idx)));
+            rel(home, (abs(m_intervals_brut[i])==PERFECT_FOURTH) >> (melodicDegreeCost[i]==getFourthCostAt(idx)));
+            rel(home, (abs(m_intervals_brut[i])==TRITONE) >> (melodicDegreeCost[i]==getTritoneCostAt(idx)));
+            rel(home, (abs(m_intervals_brut[i])==PERFECT_FIFTH) >> (melodicDegreeCost[i]==getFifthCostAt(idx)));
+            rel(home, (abs(m_intervals_brut[i])==MINOR_SIXTH || abs(m_intervals_brut[i])==MAJOR_SIXTH) >> (melodicDegreeCost[i]==getSixthCostAt(idx)));
+            rel(home, (abs(m_intervals_brut[i])==MINOR_SEVENTH || abs(m_intervals_brut[i])==MAJOR_SEVENTH) >> (melodicDegreeCost[i]==getSeventhCostAt(idx)));
+            rel(home, (abs(m_intervals_brut[i])==PERFECT_OCTAVE) >> (melodicDegreeCost[i]==getOctaveCostAt(idx)));
             idx++;
         }
     }
 
-    m2ZeroArray = IntVarArray(home, ((fourthSpeciesNotesCp.size()-1)/2)-2, IntSet({0, m2ZeroCost}));
-    snycopeCostArray = IntVarArray(home, (fourthSpeciesMelodicIntervals.size())/2, IntSet({0, syncopationCost}));
+    m2ZeroArray = IntVarArray(home, ((fourthSpeciesNotesCp.size()-1)/2)-2, 0, m2ZeroCost);
+    snycopeCostArray = IntVarArray(home, nMeasures-1, 0, syncopationCost);
     
     //link them
     rel(home, fourthSpeciesNotesCp, IRT_EQ, notes.slice(2, 4/notesPerMeasure.at(FOURTH_SPECIES), notes.size()));
@@ -173,10 +173,10 @@ FourthSpeciesCounterpoint::FourthSpeciesCounterpoint(Home home, int nMes, vector
     if (activeConstraints[SP4_1H6]) {
         for(int i = 0; i < h_intervals.size(); i++){
 
-            rel(home, octaveCostArray[i], IRT_EQ, h_octaveCost, Reify(expr(home, h_intervals[i]==UNISSON), RM_PMI));
+            rel(home, octaveCostArray[i], IRT_EQ, getHOctaveCostAt(i/2), Reify(expr(home, h_intervals[i]==UNISSON), RM_PMI));
             rel(home, octaveCostArray[i], IRT_EQ, 0, Reify(expr(home, h_intervals[i]!=UNISSON), RM_PMI));
     
-            rel(home, fifthCostArray[i], IRT_EQ, h_fifthCost, Reify(expr(home, h_intervals[i]==PERFECT_FIFTH), RM_PMI));
+            rel(home, fifthCostArray[i], IRT_EQ, getHFifthCostAt(i/2), Reify(expr(home, h_intervals[i]==PERFECT_FIFTH), RM_PMI));
             rel(home, fifthCostArray[i], IRT_EQ, 0, Reify(expr(home, h_intervals[i]!=PERFECT_FIFTH), RM_PMI));
     
         }
@@ -193,7 +193,7 @@ FourthSpeciesCounterpoint::FourthSpeciesCounterpoint(Home home, int nMes, vector
     //4.M1 Arsis half notes should be the same as their next halves in thesis
     if (activeConstraints[SP4_4M1]) {
         for(int i = 0; i < snycopeCostArray.size(); i++){
-            rel(home, (isNoSyncopeArray[i]==1) >> (snycopeCostArray[i]==syncopationCost));
+            rel(home, (isNoSyncopeArray[i]==1) >> (snycopeCostArray[i]==getSyncopationCostAt(i)));
             rel(home, (isNoSyncopeArray[i]==0) >> (snycopeCostArray[i]==0));
         }  
     }
@@ -201,7 +201,7 @@ FourthSpeciesCounterpoint::FourthSpeciesCounterpoint(Home home, int nMes, vector
     //4.M2 notes and two beats further are preferred to be different
     if (activeConstraints[SP4_4M2]) {
         for(int i = 0; i < m2ZeroArray.size(); i++){
-            rel(home, (fourthSpeciesNotesCp[(i*2)]==fourthSpeciesNotesCp[(i*2)+4]) >> (m2ZeroArray[i]==m2ZeroCost));
+            rel(home, (fourthSpeciesNotesCp[(i*2)]==fourthSpeciesNotesCp[(i*2)+4]) >> (m2ZeroArray[i]==getM2ZeroCostAt(i*2)));
             rel(home, (fourthSpeciesNotesCp[(i*2)]!=fourthSpeciesNotesCp[(i*2)+4]) >> (m2ZeroArray[i]==0));
         }
     }
@@ -257,8 +257,8 @@ FourthSpeciesCounterpoint::FourthSpeciesCounterpoint(Home home, int nMes, vector
  * 2 VOICES CONSTRUCTOR
  */
 FourthSpeciesCounterpoint::FourthSpeciesCounterpoint(Home home, int nMes, vector<int> cf, int lb, int ub, Stratum* low, CantusFirmus* c,  int v_type, 
-    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV):
-    FourthSpeciesCounterpoint(home, nMes, cf, lb, ub, FOURTH_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV)
+    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV, const vector<double>& melodicShape, const CostModel* costModel, int voiceIndex):
+    FourthSpeciesCounterpoint(home, nMes, cf, lb, ub, FOURTH_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV, melodicShape, costModel, voiceIndex)
 {
     
     //4.H2 : If the 4th species is the lowest stratum, then no hamonic seventh
@@ -279,7 +279,7 @@ FourthSpeciesCounterpoint::FourthSpeciesCounterpoint(Home home, int nMes, vector
         dom(home, fourthSpeciesHIntervals[0], IntSet({UNISSON, PERFECT_FIFTH, -PERFECT_FIFTH}));
     }
     
-    varietyCostArray = IntVarArray(home, 3*(getHIntervalSize()-2), IntSet({0, varietyCost}));
+    varietyCostArray = IntVarArray(home, 3*(getHIntervalSize()-2), 0, varietyCost);
 
     costs = IntVarArray(home, 7, 0, 1000000);
     cost_names = {"fifth", "octave", "melodic", "borrow", "m2", "syncopation", "variety"};
@@ -304,10 +304,10 @@ FourthSpeciesCounterpoint::FourthSpeciesCounterpoint(Home home, int nMes, vector
  * 3 VOICES CONSTRUCTOR
  */
 FourthSpeciesCounterpoint::FourthSpeciesCounterpoint(Home home, int nMes, vector<int> cf, int lb, int ub, Stratum* low, CantusFirmus* c,  int v_type, 
-    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2):
-    FourthSpeciesCounterpoint(home, nMes, cf, lb, ub, FOURTH_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV2)
+    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2, const vector<double>& melodicShape, const CostModel* costModel, int voiceIndex):
+    FourthSpeciesCounterpoint(home, nMes, cf, lb, ub, FOURTH_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV2, melodicShape, costModel, voiceIndex)
 {
-    varietyCostArray = IntVarArray(home, 3*(getHIntervalSize()-2), IntSet({0, varietyCost}));
+    varietyCostArray = IntVarArray(home, 3*(getHIntervalSize()-2), 0, varietyCost);
 
     //4.P5 -- after careful testing, Fux does not seem to follow this rule in many of his examples. Suspended for now, but implementation left in case the decision is taken to reactivate it. 
     if (activeConstraints[SP4_4P5_3V] && false) {
@@ -342,10 +342,10 @@ FourthSpeciesCounterpoint::FourthSpeciesCounterpoint(Home home, int nMes, vector
  * 4 VOICES CONSTRUCTOR
  */
 FourthSpeciesCounterpoint::FourthSpeciesCounterpoint(Home home, int nMes, vector<int> cf, int lb, int ub, Stratum* low, CantusFirmus* c,  int v_type, 
-    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2, int nV3):
-    FourthSpeciesCounterpoint(home, nMes, cf, lb, ub, FOURTH_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV2)
+    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2, int nV3, const vector<double>& melodicShape, const CostModel* costModel, int voiceIndex):
+    FourthSpeciesCounterpoint(home, nMes, cf, lb, ub, FOURTH_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV2, melodicShape, costModel, voiceIndex)
 {
-    varietyCostArray = IntVarArray(home, 3*(getHIntervalSize()-2), IntSet({0, varietyCost}));
+    varietyCostArray = IntVarArray(home, 3*(getHIntervalSize()-2), 0, varietyCost);
 
     //4.P5 -- after careful testing, Fux does not seem to follow this rule in many of his examples. Suspended for now, but implementation left in case the decision is taken to reactivate it. 
     if (activeConstraints[SP4_4P5_4V] && false) {

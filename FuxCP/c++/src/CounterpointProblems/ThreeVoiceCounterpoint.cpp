@@ -12,9 +12,10 @@
  * @param k the key of the score. it takes values from the notes in headers/Utilities.hpp
  * @param lb the lowest note possible for the counterpoint in MIDI
  * @param ub the highest note possible for the counterpoint in MIDI
+ * @param melodicShape a vector of doubles representing the desired melodic shape
  */
 ThreeVoiceCounterpoint::ThreeVoiceCounterpoint(vector<int> cf, vector<Species> sp, vector<int> v_type, vector<int> m_costs, vector<int> g_costs,
-    vector<int> s_costs, vector<int> imp, int bm, ObjectiveMode objMode) :
+    vector<int> s_costs, vector<int> imp, int bm, ObjectiveMode objMode, const vector<double>& melodicShape) :
     CounterpointProblem(cf, -1, m_costs, g_costs, s_costs, imp, THREE_VOICES, objMode){
     species = sp;
     
@@ -26,9 +27,9 @@ ThreeVoiceCounterpoint::ThreeVoiceCounterpoint(vector<int> cf, vector<Species> s
     //create counterpoints
 
     counterpoint_1 = create_counterpoint(*this, species[0], nMeasures, cf, (6 * v_type[0] - 12) + cf[0], (6 * v_type[0] + 12) + cf[0], lowest, 
-        cantusFirmus, v_type[0], m_costs, g_costs, s_costs, bm, THREE_VOICES);
+        cantusFirmus, v_type[0], m_costs, g_costs, s_costs, bm, THREE_VOICES, melodicShape);
     counterpoint_2 = create_counterpoint(*this, species[1], nMeasures, cf, (6 * v_type[1] - 12) + cf[0], (6 * v_type[1] + 12) + cf[0], lowest, 
-        cantusFirmus, v_type[1], m_costs, g_costs, s_costs, bm, THREE_VOICES);
+        cantusFirmus, v_type[1], m_costs, g_costs, s_costs, bm, THREE_VOICES, melodicShape);
     counterpoint_3 = nullptr;
 
     //create strata
@@ -156,6 +157,120 @@ ThreeVoiceCounterpoint::ThreeVoiceCounterpoint(vector<int> cf, vector<Species> s
 
     writeToLogFile(("solution array size : " + std::to_string(solutionArray.size())).c_str());
 
+}
+
+// Nouvelle surcharge — Dorian Genon
+ThreeVoiceCounterpoint::ThreeVoiceCounterpoint(vector<int> cf, vector<Species> sp,
+    vector<int> v_type, const CostModel& costModel,
+    vector<int> imp, int bm, ObjectiveMode objMode) :
+    CounterpointProblem(cf, -1,
+        costModel.getGeneralCostsAt(0, 0),  // init CounterpointProblem/CantusFirmus — pos=0, voix=0
+        costModel.getGeneralCostsAt(0, 0),  // Les vrais profils sont dans Part
+        costModel.getSpecificCostsAt(0, 0),
+        imp, THREE_VOICES, objMode)
+{
+    species = sp;
+
+    upper_1 = new Stratum(*this, nMeasures, 0, 127, lowest->getNotes(), THREE_VOICES);
+    upper_2 = new Stratum(*this, nMeasures, 0, 127, lowest->getNotes(), THREE_VOICES);
+    upper_3 = nullptr;
+
+    // Dorian Genon — costModel et voiceIndex passés à create_counterpoint
+    // Les profils positionnels sont construits dans Part dès la construction
+    counterpoint_1 = create_counterpoint(*this, species[0], nMeasures, cf,
+        (6 * v_type[0] - 12) + cf[0], (6 * v_type[0] + 12) + cf[0],
+        lowest, cantusFirmus, v_type[0],
+        costModel.getGeneralCostsAt(0, 0),
+        costModel.getGeneralCostsAt(0, 0),
+        costModel.getSpecificCostsAt(0, 0),
+        bm, THREE_VOICES, {}, &costModel, 0);  // voiceIndex=0
+
+    counterpoint_2 = create_counterpoint(*this, species[1], nMeasures, cf,
+        (6 * v_type[1] - 12) + cf[0], (6 * v_type[1] + 12) + cf[0],
+        lowest, cantusFirmus, v_type[1],
+        costModel.getGeneralCostsAt(0, 1),
+        costModel.getGeneralCostsAt(0, 1),
+        costModel.getSpecificCostsAt(0, 1),
+        bm, THREE_VOICES, {}, &costModel, 1);  // voiceIndex=1
+
+    counterpoint_3 = nullptr;
+
+    // Le reste est identique à l'ancien constructeur
+    setStrata();
+
+    vector<Part*> parts = {cantusFirmus, counterpoint_1, counterpoint_2};
+    int scc_cz = ((cantusFirmus->getSize()/4)-1);
+    bool containsThirdSpecies = 0;
+
+    triadCostArray = IntVarArray(*this, counterpoint_1->getFirstHInterval().size(), IntSet({0, counterpoint_1->getTriadCost()}));
+    successiveCostArray = IntVarArray(*this, scc_cz, IntSet({0, counterpoint_1->getSuccCost()}));
+
+    if (activeConstraints[V3_G6])
+        for (int p = 1; p < (int)parts.size(); p++)
+            G6_noChromaticMelodies(*this, parts[p], sp[p-1]);
+
+    if (activeConstraints[V3_1H4])
+        G9_lastChordSameAsFundamental(*this, lowest, cantusFirmus);
+
+    if (activeConstraints[V3_1H5])
+        H5_1_differentNotes(*this, parts);
+
+    if (activeConstraints[V4_U2])
+        noMinorSecondBetweenUpper(*this, vector<Stratum*>{upper_1, upper_2});
+
+    if (activeConstraints[V3_1H8])
+        H8_3v_preferHarmonicTriad(*this, counterpoint_1, triadCostArray, upper_1, upper_2);
+
+    if (activeConstraints[V3_1M4])
+        M2_1_varietyCost(*this, parts);
+
+    if (activeConstraints[V3_1P4])
+        P4_successiveCost(*this, parts, scc_cz, successiveCostArray, species);
+
+    if (activeConstraints[V3_1P6])
+        P6_3v_noMoveInSameDirection(*this, parts);
+
+    if (activeConstraints[V3_1P7])
+        P7_noSuccessiveAscendingSixths(*this, parts);
+
+    if (activeConstraints[V3_2M2])
+        M2_2_3v_melodicIntervalsNotExceedMinorSixth(*this, parts, containsThirdSpecies);
+
+    if (activeConstraints[V3_5R9])
+        R9_5_twoFifthSpeciesDiversity_3v(*this, counterpoint_1, counterpoint_2);
+
+    solutionArray = IntVarArray(*this, counterpoint_1->getBranchingNotes().size() + counterpoint_2->getBranchingNotes().size(), 0, 127);
+
+    unitedCosts = IntVarArray(*this, 14, 0, 10000000);
+    unitedCostNames = {};
+
+    uniteCounterpoints();
+    uniteCosts();
+
+    computeCombinedCosts();
+    orderCosts();
+
+    branch(*this, lowest->getNotes().slice(0, 4/notesPerMeasure.at(FIRST_SPECIES), lowest->getNotes().size()), INT_VAR_DEGREE_MAX(), INT_VAL_SPLIT_MIN());
+
+    if (species[0] == FIFTH_SPECIES)
+        branch(*this, counterpoint_1->getSpeciesArray(), INT_VAR_DEGREE_MAX(), INT_VAL_RND(3U));
+    if (species[1] == FIFTH_SPECIES)
+        branch(*this, counterpoint_2->getSpeciesArray(), INT_VAR_DEGREE_MAX(), INT_VAL_RND(3U));
+
+    if (species[0] == FIFTH_SPECIES)
+        branch(*this, counterpoint_1->getCambiataCostArray(), INT_VAR_DEGREE_MAX(), INT_VAL_SPLIT_MIN());
+    if (species[1] == FIFTH_SPECIES)
+        branch(*this, counterpoint_2->getCambiataCostArray(), INT_VAR_DEGREE_MAX(), INT_VAL_SPLIT_MIN());
+
+    if (species[0] == FOURTH_SPECIES || species[0] == FIFTH_SPECIES)
+        branch(*this, counterpoint_1->getSyncopeCostArray(), INT_VAR_DEGREE_MAX(), INT_VAL_MIN());
+    if (species[1] == FOURTH_SPECIES || species[1] == FIFTH_SPECIES)
+        branch(*this, counterpoint_2->getSyncopeCostArray(), INT_VAR_DEGREE_MAX(), INT_VAL_MIN());
+
+    branch(*this, solutionArray, INT_VAR_SIZE_MIN(), INT_VAL_MIN());
+    branch(*this, cost(), INT_VAR_NONE(), INT_VAL_MIN());
+
+    writeToLogFile(("solution array size : " + std::to_string(solutionArray.size())).c_str());
 }
 
 // COPY CONSTRUCTOR

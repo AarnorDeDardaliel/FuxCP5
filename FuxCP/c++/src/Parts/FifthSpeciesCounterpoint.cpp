@@ -8,8 +8,8 @@
  * GENERAL CONSTRUCTOR
  */
 FifthSpeciesCounterpoint::FifthSpeciesCounterpoint(Home home, int nMes, vector<int> cf, int lb, int ub, Species mSpecies, Stratum* low, CantusFirmus* c,
-    int v_type, vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV):
-    Part(home, nMes, mSpecies, cf, lb, ub, v_type, m_costs, g_costs, s_costs, nV, bm)
+    int v_type, vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV, const vector<double>& melodicShape, const CostModel* costModel, int voiceIndex) :
+    Part(home, nMes, mSpecies, cf, lb, ub, v_type, m_costs, g_costs, s_costs, nV, bm, melodicShape, costModel, voiceIndex)
 {
 
     for(int i = lowerBound; i <= upperBound; i++){
@@ -464,8 +464,8 @@ FifthSpeciesCounterpoint::FifthSpeciesCounterpoint(Home home, int nMes, vector<i
      */
 
     //Imperfect consonances are preferred
-    fifthCostArray = IntVarArray(home, notes.size(), IntSet({0, fifthCost}));
-    octaveCostArray = IntVarArray(home, notes.size(), IntSet({0, octaveCost}));
+    fifthCostArray = IntVarArray(home, notes.size(), 0, h_fifthCost);
+    octaveCostArray = IntVarArray(home, notes.size(), 0, h_octaveCost);
 
     //set fifth cost
     for(int i = 0; i < notes.size(); i++){
@@ -474,7 +474,7 @@ FifthSpeciesCounterpoint::FifthSpeciesCounterpoint(Home home, int nMes, vector<i
 
         rel(home, fifthSpeciesHIntervals[i], IRT_EQ, 7, Reify(b));
         rel(home, b, BOT_AND, isConstrainedArray[i], band);
-        ite(home, band, IntVar(home, fifthCost, fifthCost), IntVar(home, 0, 0), fifthCostArray[i]);
+        ite(home, band, IntVar(home, getHFifthCostAt(i/4), getHFifthCostAt(i/4)), IntVar(home, 0, 0), fifthCostArray[i]);
     }
 
     //set octave cost
@@ -486,43 +486,44 @@ FifthSpeciesCounterpoint::FifthSpeciesCounterpoint(Home home, int nMes, vector<i
         rel(home, fifthSpeciesHIntervals[i], IRT_EQ, 7, Reify(b));
         rel(home, isNotLowest[floor(i/4)], BOT_AND, isConstrainedArray[i], band2);
         rel(home, b, BOT_AND, band2, band);
-        ite(home, band, IntVar(home, octaveCost, octaveCost), IntVar(home, 0, 0), octaveCostArray[i]);
+        ite(home, band, IntVar(home, getHOctaveCostAt(i/4), getHOctaveCostAt(i/4)), IntVar(home, 0, 0), octaveCostArray[i]);
     }
 
     //create off_cost array
-    offCostArray = IntVarArray(home, is_off.size(), IntSet({0, borrowCost}));
+    offCostArray = IntVarArray(home, is_off.size(), 0, borrowCost);
     //set the cost for borrowing this note (G4 constraint, modified)
     for(int i = 0; i < is_off.size(); i++){
         rel(home, (is_off[i]==0) >> (offCostArray[i]==0));
-        rel(home, (is_off[i]==1 && isConstrainedArray[i]==1) >> (offCostArray[i]==borrowCost));
+        rel(home, (is_off[i]==1 && isConstrainedArray[i]==1) >> (offCostArray[i]==getBorrowCostAt(i)));
         rel(home, (is_off[i]==1 && isConstrainedArray[i]==0) >> (offCostArray[i]==0));
     }
 
-    melodicDegreeCost = IntVarArray(home, m_intervals_brut.size(), IntSet({0, secondCost, thirdCost, fourthCost, tritoneCost, fifthCost, 
-        sixthCost, seventhCost, octaveCost}));
+    melodicDegreeCost = IntVarArray(home, m_intervals_brut.size(), 0, std::max({secondCost, thirdCost, fourthCost, tritoneCost, fifthCost, sixthCost, seventhCost, octaveCost}));
 
     //G7 (modified)
+    int idx = 0;
     for(int i = 0; i < m_intervals_brut.size(); i+=4/notesPerMeasure.at(FIFTH_SPECIES)){
         rel(home, (isConstrainedArray[i]==0 || isConstrainedArray[i+1]==0) >> (melodicDegreeCost[i]==0));
-        rel(home, (abs(m_intervals_brut[i])<MINOR_THIRD && isConstrainedArray[i]==1 && isConstrainedArray[i+1]==1) >> (melodicDegreeCost[i]==secondCost));
-        rel(home, ((abs(m_intervals_brut[i])==MINOR_THIRD || abs(m_intervals_brut[i])==MAJOR_THIRD)&& isConstrainedArray[i]==1&& isConstrainedArray[i+1]==1) >> (melodicDegreeCost[i]==thirdCost));
-        rel(home, (abs(m_intervals_brut[i])==PERFECT_FOURTH && isConstrainedArray[i]==1&& isConstrainedArray[i+1]==1) >> (melodicDegreeCost[i]==fourthCost));
-        rel(home, (abs(m_intervals_brut[i])==TRITONE && isConstrainedArray[i]==1&& isConstrainedArray[i+1]==1) >> (melodicDegreeCost[i]==tritoneCost));
-        rel(home, (abs(m_intervals_brut[i])==PERFECT_FIFTH && isConstrainedArray[i]==1&& isConstrainedArray[i+1]==1) >> (melodicDegreeCost[i]==fifthCost));
-        rel(home, ((abs(m_intervals_brut[i])==MINOR_SIXTH || abs(m_intervals_brut[i])==MAJOR_SIXTH)&& isConstrainedArray[i]==1&& isConstrainedArray[i+1]==1) >> (melodicDegreeCost[i]==sixthCost));
-        rel(home, ((abs(m_intervals_brut[i])==MINOR_SEVENTH || abs(m_intervals_brut[i])==MAJOR_SEVENTH)&& isConstrainedArray[i]==1&& isConstrainedArray[i+1]==1) >> (melodicDegreeCost[i]==seventhCost));
-        rel(home, (abs(m_intervals_brut[i])==PERFECT_OCTAVE && isConstrainedArray[i]==1&& isConstrainedArray[i+1]==1) >> (melodicDegreeCost[i]==octaveCost));
+        rel(home, (abs(m_intervals_brut[i])<MINOR_THIRD && isConstrainedArray[i]==1 && isConstrainedArray[i+1]==1) >> (melodicDegreeCost[i]==getSecondCostAt(idx)));
+        rel(home, ((abs(m_intervals_brut[i])==MINOR_THIRD || abs(m_intervals_brut[i])==MAJOR_THIRD)&& isConstrainedArray[i]==1&& isConstrainedArray[i+1]==1) >> (melodicDegreeCost[i]==getThirdCostAt(idx)));
+        rel(home, (abs(m_intervals_brut[i])==PERFECT_FOURTH && isConstrainedArray[i]==1&& isConstrainedArray[i+1]==1) >> (melodicDegreeCost[i]==getFourthCostAt(idx)));
+        rel(home, (abs(m_intervals_brut[i])==TRITONE && isConstrainedArray[i]==1&& isConstrainedArray[i+1]==1) >> (melodicDegreeCost[i]==getTritoneCostAt(idx)));
+        rel(home, (abs(m_intervals_brut[i])==PERFECT_FIFTH && isConstrainedArray[i]==1&& isConstrainedArray[i+1]==1) >> (melodicDegreeCost[i]==getFifthCostAt(idx)));
+        rel(home, ((abs(m_intervals_brut[i])==MINOR_SIXTH || abs(m_intervals_brut[i])==MAJOR_SIXTH)&& isConstrainedArray[i]==1&& isConstrainedArray[i+1]==1) >> (melodicDegreeCost[i]==getSixthCostAt(idx)));
+        rel(home, ((abs(m_intervals_brut[i])==MINOR_SEVENTH || abs(m_intervals_brut[i])==MAJOR_SEVENTH)&& isConstrainedArray[i]==1&& isConstrainedArray[i+1]==1) >> (melodicDegreeCost[i]==getSeventhCostAt(idx)));
+        rel(home, (abs(m_intervals_brut[i])==PERFECT_OCTAVE && isConstrainedArray[i]==1&& isConstrainedArray[i+1]==1) >> (melodicDegreeCost[i]==getOctaveCostAt(idx)));
+        idx++;
     }
 
-    cambiataCostArray = IntVarArray(home, nMeasures-1, IntSet({0, cambiataCost}));
+    cambiataCostArray = IntVarArray(home, nMeasures-1, 0, cambiataCost);
 
     for(int i = 0; i < cambiataCostArray.size(); i++){
         BoolVar band = BoolVar(home, 0, 1);
         rel(home, isNotCambiata[i], BOT_AND, isMostlyThirdArray[i], band);
-        ite(home, band, IntVar(home, cambiataCost, cambiataCost), IntVar(home, 0, 0), cambiataCostArray[i]);
+        ite(home, band, IntVar(home, getCambiataCostAt(i), getCambiataCostAt(i)), IntVar(home, 0, 0), cambiataCostArray[i]);
     }
 
-    m2ZeroCostArray = IntVarArray(home, m2Len, IntSet({0, m2ZeroCost}));
+    m2ZeroCostArray   = IntVarArray(home, m2Len, 0, m2ZeroCost);
 
     for(int i = 0; i < fifthSpeciesM2Intervals.size(); i++){
         BoolVar b = BoolVar(home, 0, 1);
@@ -532,17 +533,17 @@ FifthSpeciesCounterpoint::FifthSpeciesCounterpoint(Home home, int nMes, vector<i
         rel(home, fifthSpeciesM2Intervals[i], IRT_EQ, 0, Reify(b));
         rel(home, isConstrainedArray[i], BOT_AND, isConstrainedArray[i+2], band2);
         rel(home, b, BOT_AND, band2, band);
-        ite(home, band, IntVar(home, m2ZeroCost, m2ZeroCost), IntVar(home, 0, 0), m2ZeroCostArray[i]);
+        ite(home, band, IntVar(home, getM2ZeroCostAt(i/4), getM2ZeroCostAt(i)), IntVar(home, 0, 0), m2ZeroCostArray[i]);
     }
 
-    snycopeCostArray = IntVarArray(home, (fifthSpeciesMIntervals.size())/4, IntSet({0, syncopationCost}));
+    snycopeCostArray = IntVarArray(home, (fifthSpeciesMIntervals.size())/4, 0, syncopationCost);
     for(int i = 0; i < snycopeCostArray.size(); i++){
         BoolVar b = BoolVar(home, 0, 1);
         BoolVar band = BoolVar(home, 0, 1);
 
         rel(home, fifthSpeciesMIntervals[(i*4)+2], IRT_NQ, 0, Reify(b));
         rel(home, b, BOT_AND, isFourthSpeciesArray[(i*4)+2], band);
-        ite(home, band, IntVar(home, syncopationCost, syncopationCost), IntVar(home, 0, 0), snycopeCostArray[i]);
+        ite(home, band, IntVar(home, getSyncopationCostAt(i), getSyncopationCostAt(i)), IntVar(home, 0, 0), snycopeCostArray[i]);
     }
 }
 
@@ -550,8 +551,8 @@ FifthSpeciesCounterpoint::FifthSpeciesCounterpoint(Home home, int nMes, vector<i
  * 2 VOICES CONSTRUCTOR
  */
 FifthSpeciesCounterpoint::FifthSpeciesCounterpoint(Home home, int nMes, vector<int> cf, int lb, int ub, Stratum* low, CantusFirmus* c,  int v_type, 
-    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV):
-FifthSpeciesCounterpoint(home, nMes, cf, lb, ub, FIFTH_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV)
+    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV, const vector<double>& melodicShape, const CostModel* costModel, int voiceIndex):
+FifthSpeciesCounterpoint(home, nMes, cf, lb, ub, FIFTH_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV, melodicShape, costModel, voiceIndex)
 {
     //following two rel are H2_1 but modified, so we check in TwoVoiceProblem that that constrained isn't activated if fifth species
     if (activeConstraints[SP5_2V_1]) {
@@ -616,7 +617,7 @@ FifthSpeciesCounterpoint(home, nMes, cf, lb, ub, FIFTH_SPECIES, low, c, v_type, 
     }
     
 
-    varietyCostArray = IntVarArray(home, 3*(fifthSpeciesHIntervals.size()-2), IntSet({0, varietyCost}));
+    varietyCostArray = IntVarArray(home, 3*(fifthSpeciesHIntervals.size()-2), 0, varietyCost);
 
     costs = IntVarArray(home, 9, 0, 1000000);
     cost_names = {"fifth", "octave", "borrow", "melodic", "motion", "cambiata", "m2", "syncopation", "variety"};
@@ -645,19 +646,19 @@ FifthSpeciesCounterpoint(home, nMes, cf, lb, ub, FIFTH_SPECIES, low, c, v_type, 
  * 3 VOICES CONSTRUCTOR
  */
 FifthSpeciesCounterpoint::FifthSpeciesCounterpoint(Home home, int nMes, vector<int> cf, int lb, int ub, Stratum* low, CantusFirmus* c,  int v_type, 
-    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2):
-FifthSpeciesCounterpoint(home, nMes, cf, lb, ub, FIFTH_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV2)
+    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2, const vector<double>& melodicShape, const CostModel* costModel, int voiceIndex):
+FifthSpeciesCounterpoint(home, nMes, cf, lb, ub, FIFTH_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV2, melodicShape, costModel, voiceIndex)
 {
-    directCostArray = IntVarArray(home, fifthSpeciesMotions.size()-1,IntSet({0, directMoveCost}));
-    varietyCostArray = IntVarArray(home, 3*(fifthSpeciesHIntervals.size()-2), IntSet({0, varietyCost}));
+    directCostArray  = IntVarArray(home, fifthSpeciesMotions.size()-1, 0, directMoveCost);
+    varietyCostArray = IntVarArray(home, 3*(fifthSpeciesHIntervals.size()-2), 0, varietyCost);
 
     //3.H6 : harmonic triad should be used on the second or third beat
     if (activeConstraints[SP5_3V_1]) {
-        thirdHTriadArray = IntVarArray(home, nMeasures-1, IntSet({0, triad3rdCost}));
+        thirdHTriadArray = IntVarArray(home, nMeasures-1, 0, triad3rdCost);
         for(int i = 0; i < thirdHTriadArray.size(); i++){
             rel(home, ((fifthSpeciesHIntervals[(i*4)+1]!=UNISSON&&fifthSpeciesHIntervals[(i*4)+1]!=MINOR_THIRD&&fifthSpeciesHIntervals[(i*4)+1]!=MAJOR_THIRD&&fifthSpeciesHIntervals[(i*4)+1]!=PERFECT_FIFTH)&&
                 (fifthSpeciesHIntervals[(i*4)+2]!=UNISSON&&fifthSpeciesHIntervals[(i*4)+2]!=MINOR_THIRD&&fifthSpeciesHIntervals[(i*4)+2]!=MAJOR_THIRD&&fifthSpeciesHIntervals[(i*4)+2]!=PERFECT_FIFTH)) >> 
-                (thirdHTriadArray[i]==triad3rdCost));
+                (thirdHTriadArray[i]==getTriad3rdCostAt(i)));
             rel(home, ((fifthSpeciesHIntervals[(i*4)+1]==UNISSON||fifthSpeciesHIntervals[(i*4)+1]==MINOR_THIRD||fifthSpeciesHIntervals[(i*4)+1]==MAJOR_THIRD||fifthSpeciesHIntervals[(i*4)+1]==PERFECT_FIFTH)||
                 (fifthSpeciesHIntervals[(i*4)+2]==UNISSON||fifthSpeciesHIntervals[(i*4)+2]==MINOR_THIRD||fifthSpeciesHIntervals[(i*4)+2]==MAJOR_THIRD||fifthSpeciesHIntervals[(i*4)+2]==PERFECT_FIFTH)) >> 
                 (thirdHTriadArray[i]==0));
@@ -669,7 +670,7 @@ FifthSpeciesCounterpoint(home, nMes, cf, lb, ub, FIFTH_SPECIES, low, c, v_type, 
         for(int j = 0; j < fifthSpeciesMotions.size()-1; j++){
             //set a cost when it is reached through direct motion, it is 0 when not
             rel(home, (fifthSpeciesMotions[j]==2&&(firstSpeciesHarmonicIntervals[j+1]==0||firstSpeciesHarmonicIntervals[j+1]==7))>>
-                (directCostArray[j]==directMoveCost));
+                (directCostArray[j]==getDirectMoveCostAt(j)));
             rel(home, (fifthSpeciesMotions[j]!=2||(firstSpeciesHarmonicIntervals[j+1]!=0&&firstSpeciesHarmonicIntervals[j+1]!=7))>>
                 (directCostArray[j]==0));
         }
@@ -707,19 +708,19 @@ FifthSpeciesCounterpoint(home, nMes, cf, lb, ub, FIFTH_SPECIES, low, c, v_type, 
  * 4 VOICES CONSTRUCTOR
  */
 FifthSpeciesCounterpoint::FifthSpeciesCounterpoint(Home home, int nMes, vector<int> cf, int lb, int ub, Stratum* low, CantusFirmus* c,  int v_type, 
-    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2, int nV3):
-FifthSpeciesCounterpoint(home, nMes, cf, lb, ub, FIFTH_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV3)
+    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2, int nV3, const vector<double>& melodicShape, const CostModel* costModel, int voiceIndex):
+FifthSpeciesCounterpoint(home, nMes, cf, lb, ub, FIFTH_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV3, melodicShape, costModel, voiceIndex)
 {
-    directCostArray = IntVarArray(home, fifthSpeciesMotions.size()-1,IntSet({0, directMoveCost}));
-    varietyCostArray = IntVarArray(home, 3*(fifthSpeciesHIntervals.size()-2), IntSet({0, varietyCost}));
+    directCostArray  = IntVarArray(home, fifthSpeciesMotions.size()-1, 0, directMoveCost);
+    varietyCostArray = IntVarArray(home, 3*(fifthSpeciesHIntervals.size()-2), 0, varietyCost);
 
     //3.H6 : harmonic triad should be used on the second or third beat
     if (activeConstraints[SP5_4V_1]) {
-        thirdHTriadArray = IntVarArray(home, nMeasures-1, IntSet({0, triad3rdCost}));
+        thirdHTriadArray = IntVarArray(home, nMeasures-1, 0, triad3rdCost);
         for(int i = 0; i < thirdHTriadArray.size(); i++){
             rel(home, ((fifthSpeciesHIntervals[(i*4)+1]!=UNISSON&&fifthSpeciesHIntervals[(i*4)+1]!=MINOR_THIRD&&fifthSpeciesHIntervals[(i*4)+1]!=MAJOR_THIRD&&fifthSpeciesHIntervals[(i*4)+1]!=PERFECT_FIFTH)&&
                 (fifthSpeciesHIntervals[(i*4)+2]!=UNISSON&&fifthSpeciesHIntervals[(i*4)+2]!=MINOR_THIRD&&fifthSpeciesHIntervals[(i*4)+2]!=MAJOR_THIRD&&fifthSpeciesHIntervals[(i*4)+2]!=PERFECT_FIFTH)) >> 
-                (thirdHTriadArray[i]==triad3rdCost));
+                (thirdHTriadArray[i]==getTriad3rdCostAt(i)));
             rel(home, ((fifthSpeciesHIntervals[(i*4)+1]==UNISSON||fifthSpeciesHIntervals[(i*4)+1]==MINOR_THIRD||fifthSpeciesHIntervals[(i*4)+1]==MAJOR_THIRD||fifthSpeciesHIntervals[(i*4)+1]==PERFECT_FIFTH)||
                 (fifthSpeciesHIntervals[(i*4)+2]==UNISSON||fifthSpeciesHIntervals[(i*4)+2]==MINOR_THIRD||fifthSpeciesHIntervals[(i*4)+2]==MAJOR_THIRD||fifthSpeciesHIntervals[(i*4)+2]==PERFECT_FIFTH)) >> 
                 (thirdHTriadArray[i]==0));
@@ -732,7 +733,7 @@ FifthSpeciesCounterpoint(home, nMes, cf, lb, ub, FIFTH_SPECIES, low, c, v_type, 
         for(int j = 0; j < fifthSpeciesMotions.size()-1; j++){
             //set a cost when it is reached through direct motion, it is 0 when not
             rel(home, (fifthSpeciesMotions[j]==2&&(firstSpeciesHarmonicIntervals[j+1]==0||firstSpeciesHarmonicIntervals[j+1]==7))>>
-                (directCostArray[j]==directMoveCost));
+                (directCostArray[j]==getDirectMoveCostAt(j)));
             rel(home, (fifthSpeciesMotions[j]!=2||(firstSpeciesHarmonicIntervals[j+1]!=0&&firstSpeciesHarmonicIntervals[j+1]!=7))>>
                 (directCostArray[j]==0));
         }

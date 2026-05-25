@@ -10,8 +10,8 @@
  */
 
 FirstSpeciesCounterpoint::FirstSpeciesCounterpoint(Home home, int nMes, vector<int> cf, int lb, int ub, Species mSpecies, Stratum* low, CantusFirmus* c,
-     int v_type, vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV):
-        Part(home, nMes, mSpecies, cf, lb, ub, v_type, m_costs, g_costs, s_costs, nV, bm) { /// super constructor
+     int v_type, vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV, const vector<double>& melodicShape, const CostModel* costModel, int voiceIndex) :
+        Part(home, nMes, mSpecies, cf, lb, ub, v_type, m_costs, g_costs, s_costs, nV, bm, melodicShape, costModel, voiceIndex) { /// super constructor
     
     motherSpecies = mSpecies;
     for(int i = lowerBound; i <= upperBound; i++){
@@ -63,11 +63,12 @@ FirstSpeciesCounterpoint::FirstSpeciesCounterpoint(Home home, int nMes, vector<i
     initializeIsOffArray(home, this);
 
     //create off_cost array
-    offCostArray = IntVarArray(home, is_off.size(), IntSet({0, borrowCost}));
+    offCostArray = IntVarArray(home, is_off.size(), 0, borrowCost);
     
     //create the melodic degree cost array
-    melodicDegreeCost = IntVarArray(home, m_intervals_brut.size(), IntSet({secondCost, thirdCost, fourthCost, tritoneCost, fifthCost, 
-        sixthCost, seventhCost, octaveCost}));
+    // Dorian Genon — domaine élargi pour permettre les coûts mélodiques positionnels
+    melodicDegreeCost = IntVarArray(home, m_intervals_brut.size(), 0, 
+        max({secondCost, thirdCost, fourthCost, tritoneCost, fifthCost, sixthCost, seventhCost, octaveCost}));
 
     //create motions arrays
     firstSpeciesMotions = IntVarArray(home, nMeasures* notesPerMeasure.at(FIRST_SPECIES) -1, IntSet{-1, CONTRARY_MOTION, OBLIQUE_MOTION, PARALLEL_MOTION});
@@ -106,8 +107,8 @@ FirstSpeciesCounterpoint::FirstSpeciesCounterpoint(Home home, int nMes, vector<i
     }
     
     // create pefectConsArray
-    fifthCostArray = IntVarArray(home, h_intervals.size(), IntSet({0, h_fifthCost}));
-    octaveCostArray = IntVarArray(home, h_intervals.size(), IntSet({0, h_octaveCost}));
+    fifthCostArray = IntVarArray(home, h_intervals.size(), 0, h_fifthCost);
+    octaveCostArray = IntVarArray(home, h_intervals.size(), 0, h_octaveCost);
 
     isConsonance = BoolVarArray(home, h_intervals.size(), 0, 1);
     //this loop checks that every harmonic interval is a consonance or not
@@ -172,8 +173,8 @@ FirstSpeciesCounterpoint::FirstSpeciesCounterpoint(Home home, int nMes, vector<i
  */
 
 FirstSpeciesCounterpoint::FirstSpeciesCounterpoint(Home home, int nMes, vector<int> cf, int lb, int ub, Stratum* low, CantusFirmus* c, int v_type
-    , vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV) :
-        FirstSpeciesCounterpoint(home, nMes, cf, lb, ub, FIRST_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV) ///call the general constructor
+    , vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV, const vector<double>& melodicShape, const CostModel* costModel, int voiceIndex) :
+        FirstSpeciesCounterpoint(home, nMes, cf, lb, ub, FIRST_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV, melodicShape, costModel, voiceIndex) ///call the general constructor
 {
     rel(home, firstSpeciesMelodicIntervals, IRT_EQ, m_intervals_brut.slice(0,4/notesPerMeasure.at(FIRST_SPECIES),m_intervals_brut.size()));
 
@@ -201,7 +202,7 @@ FirstSpeciesCounterpoint::FirstSpeciesCounterpoint(Home home, int nMes, vector<i
         P3_1_noBattuta(home, this);
     }
 
-    varietyCostArray = IntVarArray(home, 3*(firstSpeciesHarmonicIntervals.size()-2), IntSet({0, varietyCost}));
+    varietyCostArray = IntVarArray(home, 3*(firstSpeciesHarmonicIntervals.size()-2), 0, varietyCost);
 
     costs = IntVarArray(home, 6, 0, 1000000);
     cost_names = {"fifth", "octave", "motion", "melodic", "borrow", "variety"};
@@ -225,13 +226,13 @@ FirstSpeciesCounterpoint::FirstSpeciesCounterpoint(Home home, int nMes, vector<i
  */
 
 FirstSpeciesCounterpoint::FirstSpeciesCounterpoint(Home home, int nMes, vector<int> cf, int lb, int ub,  Stratum* low, CantusFirmus* c,  int v_type, 
-    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2) : 
-    FirstSpeciesCounterpoint(home, nMes, cf, lb, ub, FIRST_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV2) ///call the general constructor
+    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2, const vector<double>& melodicShape, const CostModel* costModel, int voiceIndex) : 
+    FirstSpeciesCounterpoint(home, nMes, cf, lb, ub, FIRST_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV2, melodicShape, costModel, voiceIndex) ///call the general constructor
 {
     rel(home, firstSpeciesMelodicIntervals, IRT_EQ, m_intervals_brut.slice(0,4/notesPerMeasure.at(FIRST_SPECIES),m_intervals_brut.size()));
 
-    varietyCostArray = IntVarArray(home, 3*(firstSpeciesHarmonicIntervals.size()-2), IntSet({0, varietyCost}));
-    directCostArray = IntVarArray(home, firstSpeciesMotions.size()-1,IntSet({0, directMoveCost}));
+    varietyCostArray = IntVarArray(home, 3*(firstSpeciesHarmonicIntervals.size()-2), 0, varietyCost);
+    directCostArray = IntVarArray(home, firstSpeciesMotions.size()-1, 0, directMoveCost);
 
     //1.H7 -- after careful testing, this constraint does not work Fux's examples
     if (activeConstraints[SP1_1H7_3V]) {
@@ -276,13 +277,13 @@ FirstSpeciesCounterpoint::FirstSpeciesCounterpoint(Home home, int nMes, vector<i
  */
 
 FirstSpeciesCounterpoint::FirstSpeciesCounterpoint(Home home, int nMes, vector<int> cf, int lb, int ub, Stratum* low, CantusFirmus* c,  int v_type, 
-    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2, int nV3):
-    FirstSpeciesCounterpoint(home, nMes, cf, lb, ub, FIRST_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV3)
+    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2, int nV3, const vector<double>& melodicShape, const CostModel* costModel, int voiceIndex) :
+    FirstSpeciesCounterpoint(home, nMes, cf, lb, ub, FIRST_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV3, melodicShape, costModel, voiceIndex)
 {
     rel(home, firstSpeciesMelodicIntervals, IRT_EQ, m_intervals_brut.slice(0,4/notesPerMeasure.at(FIRST_SPECIES),m_intervals_brut.size()));
 
-    varietyCostArray = IntVarArray(home, 3*(firstSpeciesHarmonicIntervals.size()-2), IntSet({0, varietyCost}));
-    directCostArray = IntVarArray(home, firstSpeciesMotions.size()-1,IntSet({0, 2, directMoveCost}));
+    varietyCostArray = IntVarArray(home, 3*(firstSpeciesHarmonicIntervals.size()-2), 0, varietyCost);
+    directCostArray = IntVarArray(home, firstSpeciesMotions.size()-1, 0, directMoveCost);
     
     /// M2 from Thibault: Melodic intervals cannot exceed a minor sixth (also include octave?)
     if (activeConstraints[SP1_1M2_4V]) {

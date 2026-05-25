@@ -188,10 +188,11 @@ LinIntExpr CounterpointProblem::getPonderedCostsSum(IntVarArray costsArray){
     return sumWeighted;
 }
 
-IntVarArgs CounterpointProblem::cost() const{
-
-    return IntVarArgs(ponderedGlobalCost + finalCosts);
-
+IntVarArgs CounterpointProblem::cost() const {
+    if (objectiveMode == OBJECTIVE_LEX) {
+        return IntVarArgs(finalCosts);  // lexico pur, sans ponderedGlobalCost en tête
+    }
+    return IntVarArgs(ponderedGlobalCost + finalCosts);  // total/mixed : scalaire en tête
 }
 
 string CounterpointProblem::to_string() const {
@@ -232,100 +233,122 @@ double CounterpointProblem::getCost() const {
 }
 
 void CounterpointProblem::orderCosts(){
+
+    // =========================================================
+    // ÉTAPE 1 : construction de finalCosts lexico (commun aux 3 méthodes)
+    // On construit toujours le vecteur lexico d'abord car c'est la base
+    // des coûts musicaux — les autres modes l'utilisent comme point de départ
+    // =========================================================
     for(int i = 0; i < 14; i++){
         if(!costLevels[i].empty()){
             int sm_size = 0;
             for(int k = 0; k < costLevels[i].size(); k++){
-                //goes through every cost at the cost level
                 for(int t = 0; t < unitedCostNames.size(); t++){
-                    if(unitedCostNames[t]==costLevels[i][k]){
-                        //adjusts the amount of costs at this level
-                        sm_size++;
-                    }
+                    if(unitedCostNames[t]==costLevels[i][k]) sm_size++;
                 }
             }
-            //now cst_sm_size contains the size of all the cost array on this level combined
-            IntVarArgs sm(sm_size); //sum of all the costs on this level
+            IntVarArgs sm(sm_size);
             int idx = 0;
             for(int k = 0; k < costLevels[i].size(); k++){
-                //goes through every cost at the cost level
                 for(int t = 0; t < unitedCostNames.size(); t++){
                     if(unitedCostNames[t]==costLevels[i][k]){
-                        //add the cost to the intvarargs
                         sm[idx] = unitedCosts[t];
                         idx++;
                     }
                 }
             }
-            //if there is at least one cost at this level
-            if(idx>0){
-                //then sum all the intvarargs of this level together and add them to the orderedFactors
+            if(idx > 0){
                 rel(*this, orderedFactors[n_unique_costs], IRT_EQ, expr(*this, sum(sm)));
-                //increase the amount of unique costs
                 n_unique_costs++;
             }
         }
     }
-    
-    finalCosts = IntVarArray(*this, n_unique_costs, 0, 1000000);
+
+    // finalCosts lexico — base commune
+    IntVarArray lexCosts(*this, n_unique_costs, 0, 1000000);
     for(int i = 0; i < n_unique_costs; i++){
-        //adds the cost/costs to the finalCosts list, which will be the one that will be minimized
-        //(this eliminates all the <not assigned> values of the intvararray for costs which are not set)
-        rel(*this, finalCosts[i], IRT_EQ, orderedFactors[i]);
+        rel(*this, lexCosts[i], IRT_EQ, orderedFactors[i]);
     }
 
-    // globalCost = somme des coûts musicaux originaux (lexicographiques).
-    // Doit être posé AVANT toute réassignation de finalCosts pour TOTAL/MIXED,
-    // sinon on cree un cycle (mixCost = globalCost + lexScore puis
-    //  globalCost = sum(finalCosts) = mixCost => lexScore = 0).
-    rel(*this, globalCost, IRT_EQ, expr(*this, sum(finalCosts)));
+    // globalCost = somme des coûts musicaux bruts (pour reporting)
+    rel(*this, globalCost, IRT_EQ, expr(*this, sum(lexCosts)));
 
-    // Adapte l'objectif (la cible de minimisation BAB) selon le mode demandé.
-    // globalCost reste figé sur les coûts musicaux originaux pour le reporting.
-    if (objectiveMode == OBJECTIVE_TOTAL) {
-        IntVarArray totalCosts(*this, 1, 0, 2000000);
-        rel(*this, totalCosts[0], IRT_EQ, globalCost);
-        finalCosts = totalCosts;
-    } else if (objectiveMode == OBJECTIVE_MIXED) {
-        // Score lexicographique pondéré (priorités fortes avec poids plus élevés)
-        IntVarArgs lexArgs(n_unique_costs);
-        IntArgs weights(n_unique_costs);
-        for(int i = 0; i < n_unique_costs; i++){
-            lexArgs[i] = orderedFactors[i];
-            weights[i] = n_unique_costs - i;
+    // =========================================================
+    // ÉTAPE 2 : construction de finalCosts selon le mode
+    // =========================================================
+
+    if(objectiveMode == OBJECTIVE_LEX) {
+
+        // --- LEXICO ---
+        // Le solver optimise le vecteur ordonné par priorité
+        // finalCosts[0] = coût le plus prioritaire, ..., finalCosts[n-1] = le moins
+        finalCosts = lexCosts;
+        rel(*this, ponderedGlobalCost, IRT_EQ, 0);  // neutralisé
+
+    } else if(objectiveMode == OBJECTIVE_MINMAX) {
+
+        // --- MINMAX ---
+        // Minimise le maximum des coûts pondérés par (15 - rang)
+        // coeff = 15 - rang, rang 1 → coeff 14, rang 14 → coeff 1
+        IntVarArgs weightedCosts;
+        for(int t = 0; t < unitedCostNames.size(); t++){
+            string name = unitedCostNames[t];
+            int rank = prefs[name];
+            int coeff = 15 - rank;
+            IntVar wc(*this, 0, 10000000);
+            rel(*this, wc, IRT_EQ, expr(*this, unitedCosts[t] * coeff));
+            weightedCosts << wc;
         }
-        IntVar lexScore(*this, 0, 2000000);
-        linear(*this, weights, lexArgs, IRT_EQ, lexScore);
 
-        IntVar mixCost(*this, 0, 4000000);
-        IntArgs mixWeights(2);
-        mixWeights[0] = 1;
-        mixWeights[1] = 1;
-        IntVarArgs mixVars(2);
-        mixVars[0] = globalCost;
-        mixVars[1] = lexScore;
-        linear(*this, mixWeights, mixVars, IRT_EQ, mixCost);
+        IntVar maxCost(*this, 0, 10000000);
+        if(weightedCosts.size() > 0){
+            rel(*this, maxCost, IRT_EQ, expr(*this, max(weightedCosts)));
+        } else {
+            rel(*this, maxCost, IRT_EQ, 0);
+        }
 
-        IntVarArray mixedCosts(*this, 1, 0, 4000000);
-        rel(*this, mixedCosts[0], IRT_EQ, mixCost);
-        finalCosts = mixedCosts;
+        finalCosts = IntVarArray(*this, 1, 0, 10000000);
+        rel(*this, finalCosts[0], IRT_EQ, maxCost);
+        rel(*this, ponderedGlobalCost, IRT_EQ, maxCost);
+
+    } else if(objectiveMode == OBJECTIVE_WEIGHTED) {
+
+        // --- SOMME PONDÉRÉE ---
+        // Minimise la somme de tous les coûts × (15 - rang)
+        // coeff = 15 - rang, rang 1 → coeff 14, rang 14 → coeff 1
+        IntVarArgs weightedCosts;
+        for(int t = 0; t < unitedCostNames.size(); t++){
+            string name = unitedCostNames[t];
+            int rank = prefs[name];
+            int coeff = 15 - rank;
+            IntVar wc(*this, 0, 10000000);
+            rel(*this, wc, IRT_EQ, expr(*this, unitedCosts[t] * coeff));
+            weightedCosts << wc;
+        }
+
+        IntVar weightedSum(*this, 0, 10000000);
+        if(weightedCosts.size() > 0){
+            rel(*this, weightedSum, IRT_EQ, expr(*this, sum(weightedCosts)));
+        } else {
+            rel(*this, weightedSum, IRT_EQ, 0);
+        }
+
+        finalCosts = IntVarArray(*this, 1, 0, 10000000);
+        rel(*this, finalCosts[0], IRT_EQ, weightedSum);
+        rel(*this, ponderedGlobalCost, IRT_EQ, weightedSum);
     }
 
-    // If relaxation costs exist, prepend totalRelaxationCost as highest priority
+    // =========================================================
+    // ÉTAPE 3 : relaxation (priorité absolue si activée)
+    // =========================================================
     if(hasRelaxation){
         IntVarArray newFinalCosts(*this, finalCosts.size() + 1, 0, 1000000);
-        // First element: relaxation cost (highest lex priority)
         rel(*this, newFinalCosts[0], IRT_EQ, totalRelaxationCost);
-        // Rest: original costs
         for(int i = 0; i < finalCosts.size(); i++){
             rel(*this, newFinalCosts[i+1], IRT_EQ, finalCosts[i]);
         }
         finalCosts = newFinalCosts;
     }
-
-    //globalCost is the sum of all the finalCosts
-    rel(*this, globalCost, IRT_EQ, expr(*this, sum(finalCosts)));
-    rel(*this, ponderedGlobalCost, IRT_EQ, expr(*this, getPonderedCostsSum(finalCosts)));
 }
 
 

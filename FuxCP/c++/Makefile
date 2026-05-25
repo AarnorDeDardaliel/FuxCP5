@@ -88,20 +88,34 @@ $(TARGET): $(OBJS)
 # GÉNÉRATEUR DE CONTREPOINTS (binaire principal)
 # =============================================================
 
-GENERATE_COUNTERPOINT_SOURCES = src/Generations.cpp $(SHARED_SOURCES) src/Midi.cpp
+GENERATE_COUNTERPOINT_SOURCES = src/Generations.cpp $(SHARED_SOURCES)
 
 compile_generate_counterpoint:
 	@mkdir -p $(COMPILED_DIR)
 	$(CXX) $(CXXFLAGS_DEBUG) $(GENERATE_COUNTERPOINT_SOURCES) \
-	    -o $(COMPILED_DIR)/Generations $(LIBS_MINIMAL)
+	    -o $(COMPILED_DIR)/GenerateCounterpoint $(LIBS_MINIMAL)
 
 # --- Génération d'un contrepoint précis ---
 # Usage : make generate COMBO="<nb_voix> <especes...>" [CF=<n>] [TIMEOUT=<ms>] [STAGNATION=<ms>]
 # Exemple : make generate COMBO="2 1"
 # Exemple : make generate COMBO="4 1 2 3" CF=2 TIMEOUT=300000 STAGNATION=120000
 generate: compile_generate_counterpoint
-	$(COMPILED_DIR)/Generations $(COMBO) -c $(CF) $(if $(TIMEOUT),-t $(TIMEOUT),) $(if $(STAGNATION),-s $(STAGNATION),)
+	$(COMPILED_DIR)/GenerateCounterpoint $(COMBO) -c $(CF) $(if $(TIMEOUT),-t $(TIMEOUT),) $(if $(STAGNATION),-s $(STAGNATION),)
 
+
+# =============================================================
+# EXPERIMENTS — main Dorian Genon pour explorations de coûts
+# =============================================================
+EXPERIMENTS_SOURCES = src/Experiments.cpp src/CostModel.cpp $(SHARED_SOURCES)
+
+compile_experiments:
+	@mkdir -p $(COMPILED_DIR)
+	$(CXX) $(CXXFLAGS_DEBUG) $(EXPERIMENTS_SOURCES) \
+	    -o $(COMPILED_DIR)/Experiments $(LIBS_MINIMAL)
+
+experiments: compile_experiments
+	$(COMPILED_DIR)/Experiments
+	
 # =============================================================
 # TESTING SUITES
 # =============================================================
@@ -130,4 +144,5 @@ clean_all: clean clean_results
 	rm -rf $(COMPILED_DIR)
 
 .PHONY: all so compile_generate_counterpoint generate \
+    compile_experiments experiments \
 	clean clean_results clean_all

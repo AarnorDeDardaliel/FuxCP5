@@ -10,6 +10,7 @@
 #include "../Voice.hpp"
 #include "../Stratum.hpp"
 #include "../constraints.hpp"
+#include "../CostModel.hpp"
 
 #include "gecode/kernel.hh"
 #include "gecode/int.hh"
@@ -80,6 +81,32 @@ class Part : public Voice {
         int syncopationCost;
         int prefSlider;
 
+        // Dorian Genon
+        // Vide = coût fixe, rempli = coût varie selon la position
+        vector<double> melodicShape;  // shape positionnelle (vide = coûts constants)
+        vector<int> secondCostProfile;
+        vector<int> thirdCostProfile;
+        vector<int> fourthCostProfile;
+        vector<int> tritoneCostProfile;
+        vector<int> fifthCostProfile;
+        vector<int> sixthCostProfile;
+        vector<int> seventhCostProfile;
+        vector<int> octaveCostProfile;
+        vector<int> borrowCostProfile;
+        vector<int> hFifthCostProfile;
+        vector<int> hOctaveCostProfile;
+        vector<int> succCostProfile;
+        vector<int> varietyCostProfile;
+        vector<int> triadCostProfile;
+        vector<int> directMoveCostProfile;
+        vector<int> penultCostProfile;
+        vector<int> cambiataCostProfile;
+        vector<int> triad3rdCostProfile;
+        vector<int> m2ZeroCostProfile;
+        vector<int> syncopationCostProfile;
+
+
+
         IntVarArray relaxationCostArray;
 
         int directCost;
@@ -116,7 +143,7 @@ class Part : public Voice {
 
     public:
         Part(Home home, int nMes, Species sp, vector<int> cf, int lb, int ub, int v_type, vector<int> m_costs, vector<int> g_costs,
-            vector<int> s_costs, int nV, int bm);
+            vector<int> s_costs, int nV, int bm, const vector<double>& melodicShape = {}, const CostModel* costModel = nullptr, int voiceIndex = 0);
 
         // Part(Part& s); (no longer copy constructor since not a space anymore. Now just a clone constructor to deep copy the object (called by the Space's copy constructor))
         Part(Home home, Part& s);  // clone constructor
@@ -173,6 +200,32 @@ class Part : public Voice {
         int getPenultCost();
         int getDirectMoveCost();
         int getCambiataCost();
+
+        int getSecondCostAt(int idx) const;
+        int getThirdCostAt(int idx) const;
+        int getFourthCostAt(int idx) const;
+        int getTritoneCostAt(int idx) const;
+        int getFifthCostAt(int idx) const;
+        int getSixthCostAt(int idx) const;
+        int getSeventhCostAt(int idx) const;
+        int getOctaveCostAt(int idx) const;
+
+    
+        // Retournent la valeur du profile à idx si défini, sinon la valeur fixe
+        int getBorrowCostAt(int idx)       const;
+        int getHFifthCostAt(int idx)       const;
+        int getHOctaveCostAt(int idx)      const;
+        int getSuccCostAt(int idx)         const;
+        int getVarietyCostAt(int idx)      const;
+        int getTriadCostAt(int idx)        const;
+        int getDirectMoveCostAt(int idx)   const;
+        int getPenultCostAt(int idx)       const;
+        int getCambiataCostAt(int idx)     const;
+        int getTriad3rdCostAt(int idx)     const;
+        int getM2ZeroCostAt(int idx)       const;
+        int getSyncopationCostAt(int idx)  const;
+
+        void buildCostProfiles(const CostModel& model, int voiceIdx, int nPosByMeasure, int nPosByNote);
 
         IntVarArray getMelodicDegreeCost();
 

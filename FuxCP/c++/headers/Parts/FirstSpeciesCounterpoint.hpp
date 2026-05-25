@@ -42,9 +42,11 @@ public:
      * @param s_costs the user-defined specific costs 
      * @param bm parameter specifying if borrow Mode is enabled or not
      * @param nV the number of voices - as it is a 2 voice constructor, this parameter contains the number of voices
+     * @param melodicShape a vector of doubles representing the desired melodic shape
      */
     FirstSpeciesCounterpoint(Home home, int nMes, vector<int> cf, int lb, int ub, Species mSpecies, Stratum* low, CantusFirmus* c,  int v_type
-    , vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV);
+    , vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV, const vector<double>& melodicShape = {}, const CostModel* costModel = nullptr,
+    int voiceIndex = 0);
 
     /**
      * 2 VOICES CONSTRUCTOR. This constructor is only used when creating a counterpoint of the first species. It calls the other constructor with
@@ -65,7 +67,8 @@ public:
      * @param nV the number of voices - as it is a 2 voice constructor, this parameter is passed to the general constructor
      */
     FirstSpeciesCounterpoint(Home home, int nMes, vector<int> cf, int lb, int ub, Stratum* low, CantusFirmus* c,  int v_type, vector<int> m_costs
-    , vector<int> g_costs, vector<int> s_costs, int bm, int nV);
+    , vector<int> g_costs, vector<int> s_costs, int bm, int nV, const vector<double>& melodicShape = {}, const CostModel* costModel = nullptr,
+    int voiceIndex = 0);
 
     /**
      * 3 VOICES CONSTRUCTOR. This constructor is only used when creating a counterpoint of the first species. It calls the other constructor with
@@ -87,7 +90,8 @@ public:
      * @param nV2 the number of voices - as it is a 3 voice constructor, this parameter is passed to the general constructor
      */
     FirstSpeciesCounterpoint(Home home, int nMes, vector<int> cf, int lb, int ub, Stratum* low, CantusFirmus* c,  int v_type, vector<int> m_costs
-    , vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2);
+    , vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2, const vector<double>& melodicShape = {}, const CostModel* costModel = nullptr,
+    int voiceIndex = 0);
 
     /**
      * 4 VOICES CONSTRUCTOR. This constructor is only used when creating a counterpoint of the first species. It calls the other constructor with
@@ -110,7 +114,8 @@ public:
      * @param nV3 the number of voices - as it is a 4 voice constructor, this parameter is passed to the general constructor
      */
     FirstSpeciesCounterpoint(Home home, int nMes, vector<int> cf, int lb, int ub, Stratum* low, CantusFirmus* c,  int v_type, vector<int> m_costs
-    , vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2, int nV3);
+    , vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2, int nV3, const vector<double>& melodicShape = {}, const CostModel* costModel = nullptr,
+    int voiceIndex = 0);
 
     /**
      * This function returns a string with the characteristics of the counterpoint. It calls the to_string() method from

@@ -16,11 +16,11 @@ enum {
     bab_solver, //1
 };
 
-/** Modes d'optimisation des coûts */
+/** Modes d'optimisation des coûts, specific for Dorian Genon's work*/
 enum ObjectiveMode {
-    OBJECTIVE_LEX,   // ordre lexicographique (actuel)
-    OBJECTIVE_TOTAL, // somme globale des coûts
-    OBJECTIVE_MIXED  // mix somme + priorité lexicographique pondérée
+    OBJECTIVE_LEX,      // ordre lexicographique (actuel)
+    OBJECTIVE_MINMAX,   // minimise le pire coût pondéré
+    OBJECTIVE_WEIGHTED  // somme pondérée par (15 - rang)
 };
 
 

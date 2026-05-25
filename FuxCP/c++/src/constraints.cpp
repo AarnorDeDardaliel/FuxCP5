@@ -52,7 +52,7 @@ void noMinorSecondBetweenUpper(Home home, vector<Stratum*> strata){
 void G4_counterpointMustBeInTheSameKey(Home home, Part* part){
     for(int i = 0; i < part->getIsOffArray().size(); i++){
         rel(home, (part->getIsOffArray()[i]==0) >> (part->getOffCostArray()[i]==0));                     //sets no cost if not borrowed
-        rel(home, (part->getIsOffArray()[i]==1) >> (part->getOffCostArray()[i]==part->getBorrowCost())); //sets a cost if borrowed
+        rel(home, (part->getIsOffArray()[i]==1) >> (part->getOffCostArray()[i]==part->getBorrowCostAt(i))); //sets a cost if borrowed
     }
 }
 
@@ -66,19 +66,29 @@ void G6_noChromaticMelodies(Home home, Part* part, int mSpec){
     }
 }
 
-void G7_melodicIntervalsShouldBeSmall(Home home, Part* part, int mSpec){
-
-    //loop goes through every note of the melodic interval and sets the cost
-
-    for(int i = 0; i < part->getMelodicIntervals().size(); i+=4/notesPerMeasure.at(mSpec)){
-        rel(home, (abs(part->getMelodicIntervals()[i])<MINOR_THIRD) >> (part->getMelodicDegreeCost()[i]==part->getSecondCost()));
-        rel(home, (abs(part->getMelodicIntervals()[i])==MINOR_THIRD || abs(part->getMelodicIntervals()[i])==MAJOR_THIRD) >> (part->getMelodicDegreeCost()[i]==part->getThirdCost()));
-        rel(home, (abs(part->getMelodicIntervals()[i])==PERFECT_FOURTH) >> (part->getMelodicDegreeCost()[i]==part->getFourthCost()));
-        rel(home, (abs(part->getMelodicIntervals()[i])==TRITONE) >> (part->getMelodicDegreeCost()[i]==part->getTritoneCost()));
-        rel(home, (abs(part->getMelodicIntervals()[i])==PERFECT_FIFTH) >> (part->getMelodicDegreeCost()[i]==part->getFifthCost()));
-        rel(home, (abs(part->getMelodicIntervals()[i])==MINOR_SIXTH || abs(part->getMelodicIntervals()[i])==MAJOR_SIXTH) >> (part->getMelodicDegreeCost()[i]==part->getSixthCost()));
-        rel(home, (abs(part->getMelodicIntervals()[i])==MINOR_SEVENTH || abs(part->getMelodicIntervals()[i])==MAJOR_SEVENTH) >> (part->getMelodicDegreeCost()[i]==part->getSeventhCost()));
-        rel(home, (abs(part->getMelodicIntervals()[i])==PERFECT_OCTAVE) >> (part->getMelodicDegreeCost()[i]==part->getOctaveCost()));
+void G7_melodicIntervalsShouldBeSmall(Home home, Part* part, int mSpec) {
+    int idx = 0;
+    for (int i = 0; i < part->getMelodicIntervals().size(); i += 4 / notesPerMeasure.at(mSpec)) {
+        rel(home, (abs(part->getMelodicIntervals()[i]) < MINOR_THIRD) >>
+            (part->getMelodicDegreeCost()[i] == part->getSecondCostAt(idx)));
+        rel(home, ((abs(part->getMelodicIntervals()[i]) == MINOR_THIRD) ||
+                   (abs(part->getMelodicIntervals()[i]) == MAJOR_THIRD)) >>
+            (part->getMelodicDegreeCost()[i] == part->getThirdCostAt(idx)));
+        rel(home, (abs(part->getMelodicIntervals()[i]) == PERFECT_FOURTH) >>
+            (part->getMelodicDegreeCost()[i] == part->getFourthCostAt(idx)));
+        rel(home, (abs(part->getMelodicIntervals()[i]) == TRITONE) >>
+            (part->getMelodicDegreeCost()[i] == part->getTritoneCostAt(idx)));
+        rel(home, (abs(part->getMelodicIntervals()[i]) == PERFECT_FIFTH) >>
+            (part->getMelodicDegreeCost()[i] == part->getFifthCostAt(idx)));
+        rel(home, ((abs(part->getMelodicIntervals()[i]) == MINOR_SIXTH) ||
+                   (abs(part->getMelodicIntervals()[i]) == MAJOR_SIXTH)) >>
+            (part->getMelodicDegreeCost()[i] == part->getSixthCostAt(idx)));
+        rel(home, ((abs(part->getMelodicIntervals()[i]) == MINOR_SEVENTH) ||
+                   (abs(part->getMelodicIntervals()[i]) == MAJOR_SEVENTH)) >>
+            (part->getMelodicDegreeCost()[i] == part->getSeventhCostAt(idx)));
+        rel(home, (abs(part->getMelodicIntervals()[i]) == PERFECT_OCTAVE) >>
+            (part->getMelodicDegreeCost()[i] == part->getOctaveCostAt(idx)));
+        idx++;
     }
 }
 
@@ -134,8 +144,7 @@ void H3_1_endWithPerfectConsonance(Home home, Part* part){
 }
 
 void H3_2_penultimateNoteDomain(Home home, Part* part){ 
-    dom(home, expr(home, abs(part->getHIntervals()[part->getHIntervals().size()-5])), IntSet({UNISSON, PERFECT_FIFTH, MINOR_SIXTH, MAJOR_SIXTH}));
-
+    dom(home, expr(home, abs(part->getHIntervals()[part->getHIntervals().size()-5])), IntSet({PERFECT_FIFTH, MINOR_SIXTH, MAJOR_SIXTH}));
     rel(home, (part->getHIntervals()[part->getHIntervals().size()-5]!=PERFECT_FIFTH) >> (part->getPenultCostArray()[0]==part->getPenultCost()));
     rel(home, (part->getHIntervals()[part->getHIntervals().size()-5]==PERFECT_FIFTH) >> (part->getPenultCostArray()[0]==0));
 }
@@ -143,7 +152,7 @@ void H3_2_penultimateNoteDomain(Home home, Part* part){
 void H3_3_cambiataCost(Home home, Part* part){
     for(int i = 0; i < part->getCambiataCostArray().size(); i++){
         rel(home, ((part->getThirdSpeciesHIntervals()[(i*4)+1]==UNISSON || part->getThirdSpeciesHIntervals()[(i*4)+1]==PERFECT_FIFTH)&&(part->getThirdSpeciesHIntervals()[(i*4)+2]==UNISSON || part->getThirdSpeciesHIntervals()[(i*4)+2]==PERFECT_FIFTH)
-            &&(abs(part->getThirdSpeciesMIntervals()[(i*4)+1])<=2)) >> (part->getCambiataCostArray()[i]==part->getCambiataCost()));
+            &&(abs(part->getThirdSpeciesMIntervals()[(i*4)+1])<=2)) >> (part->getCambiataCostArray()[i]==part->getCambiataCostAt(i)));
         rel(home, ((part->getThirdSpeciesHIntervals()[(i*4)+1]!=UNISSON && part->getThirdSpeciesHIntervals()[(i*4)+1]!=PERFECT_FIFTH)||(part->getThirdSpeciesHIntervals()[(i*4)+2]!=UNISSON && part->getThirdSpeciesHIntervals()[(i*4)+2]!=PERFECT_FIFTH)
             ||(abs(part->getThirdSpeciesMIntervals()[(i*4)+1])>2)) >> (part->getCambiataCostArray()[i]==0));
     }
@@ -184,11 +193,11 @@ void H5_1_differentNotes(Home home, vector<Part*> parts){
 void H6_1_preferImperfectConsonances(Home home, Part* part){
     for(int i = 0; i < part->getHIntervals().size(); i++){
         //set the octave cost
-        rel(home, part->getOctaveCostArray()[i], IRT_EQ, part->getHOctaveCost(), Reify(expr(home, part->getHIntervals()[i]==UNISSON), RM_PMI));
+        rel(home, part->getOctaveCostArray()[i], IRT_EQ, part->getHOctaveCostAt(i), Reify(expr(home, part->getHIntervals()[i]==UNISSON), RM_PMI));
         rel(home, part->getOctaveCostArray()[i], IRT_EQ, 0, Reify(expr(home, part->getHIntervals()[i]!=UNISSON), RM_PMI));
 
         //set the fifth cost
-        rel(home, part->getFifthCostArray()[i], IRT_EQ, part->getHFifthCost(), Reify(expr(home, part->getHIntervals()[i]==PERFECT_FIFTH), RM_PMI));
+        rel(home, part->getFifthCostArray()[i], IRT_EQ, part->getHFifthCostAt(i), Reify(expr(home, part->getHIntervals()[i]==PERFECT_FIFTH), RM_PMI));
         rel(home, part->getFifthCostArray()[i], IRT_EQ, 0, Reify(expr(home, part->getHIntervals()[i]!=PERFECT_FIFTH), RM_PMI));
     }
 }
@@ -269,10 +278,16 @@ void H8_3v_preferHarmonicTriad(Home home, Part* part, IntVarArray triadCostArray
     }
 }
 
-void H8_4v_preferHarmonicTriad(Home home, IntVarArray triadCostArray, Stratum* upper1, Stratum* upper2, Stratum* upper3){
+void H8_4v_preferHarmonicTriad(Home home, IntVarArray triadCostArray, Stratum* upper1, Stratum* upper2, Stratum* upper3, int triadCost){
     // cout << upper1->getHIntervals().size() << endl;
     // cout << upper2->getHIntervals().size() << endl;
     // cout << upper3->getHIntervals().size() << endl;
+
+    int not_harmonic_triad_cost = triadCost * 2;
+    int double_fifths_cost      = triadCost;
+    int double_thirds_cost      = (triadCost * 3) / 4;
+    int triad_with_octave_cost  = triadCost / 4;
+    
     for(int i = 0; i < triadCostArray.size(); i++){
 
         IntVar H_b = upper1->getHIntervals()[i*4];
@@ -387,7 +402,7 @@ void M2_1_varietyCost(Home home, vector<Part*> parts){
             } else {upbnd = p->getHIntervalSize();}
             for(int k = j+1; k < upbnd;k++){
                 //setting a cost if notes inside a window are the same in a part
-                rel(home, (notes[j]==notes[k])>>(p->getVarietyArray(temp)==p->getVarietyCost()));
+                rel(home, (notes[j]==notes[k])>>(p->getVarietyArray(temp)==p->getVarietyCostAt(j)));
                 rel(home, (notes[j]!=notes[k])>>(p->getVarietyArray(temp)==0));
                 temp++;
             }
@@ -420,7 +435,7 @@ void P1_1_4v_noDirectMotionFromPerfectConsonance(Home home, Part* part){
 
         //if the counterpoint is the highest part and the condition is true, then add a direct move cost (8 in this case)
         rel(home, (part->getIsHighest()[j] && (part->getFirstSpeciesMotions()[j]==2&&(part->getFirstSpeciesHIntervals()[j+1]==0||
-            expr(home, abs(part->getFirstSpeciesHIntervals()[j+1]))==7))) >> (part->getDirectCostArray()[j]==part->getDirectMoveCost()));
+            expr(home, abs(part->getFirstSpeciesHIntervals()[j+1]))==7))) >> (part->getDirectCostArray()[j]==part->getDirectMoveCostAt(j)));
         //else the cost is 0
         rel(home, (part->getIsHighest()[j] && (part->getFirstSpeciesMotions()[j]!=2||(part->getFirstSpeciesHIntervals()[j+1]!=0 &&
             expr(home, abs(part->getFirstSpeciesHIntervals()[j+1]))!=7))) >> (part->getDirectCostArray()[j]==0));
@@ -439,7 +454,7 @@ void P1_2_3v_noDirectMotionFromPerfectConsonance(Home home, Part* part){
 
     for(int j = 0; j < part->getFirstSpeciesMotions().size()-1; j++){
         rel(home, (part->getSecondSpeciesRealMotions()[j]==2&&(part->getFirstSpeciesHIntervals()[j+1]==0||part->getFirstSpeciesHIntervals()[j+1]==7))>>
-            (part->getDirectCostArray()[j]==part->getDirectMoveCost()));
+            (part->getDirectCostArray()[j]==part->getDirectMoveCostAt(j)));
         rel(home, (part->getSecondSpeciesRealMotions()[j]!=2||(part->getFirstSpeciesHIntervals()[j+1]!=0&&part->getFirstSpeciesHIntervals()[j+1]!=7))>>
             (part->getDirectCostArray()[j]==0));
     }
@@ -457,7 +472,7 @@ void P1_2_4v_noDirectMotionFromPerfectConsonance(Home home, Part* part){
             part->getFirstSpeciesHIntervals()[j+1]!=7))) >> (part->getDirectCostArray()[j]==0));
 
         rel(home, (part->getIsHighest()[j] && (part->getSecondSpeciesRealMotions()[j]==2&&(part->getFirstSpeciesHIntervals()[j+1]==0||
-            part->getFirstSpeciesHIntervals()[j+1]==7))) >> (part->getDirectCostArray()[j]==part->getDirectMoveCost()));
+            part->getFirstSpeciesHIntervals()[j+1]==7))) >> (part->getDirectCostArray()[j]==part->getDirectMoveCostAt(j)));
         rel(home, (part->getIsHighest()[j] && (part->getSecondSpeciesRealMotions()[j]!=2||(part->getFirstSpeciesHIntervals()[j+1]!=0 &&
             part->getFirstSpeciesHIntervals()[j+1]!=7))) >> (part->getDirectCostArray()[j]==0));
 
@@ -524,7 +539,7 @@ void P4_successiveCost(Home home, vector<Part*> parts, int scc_cz, IntVarArray s
                 for(int i = 0; i < isPCons12.size()-1; i++){
                     BoolVar succPCons = BoolVar(home, 0, 1);
                     rel(home, isPCons12[i], BOT_AND, isPCons12[i+1], succPCons);
-                    rel(home, (succPCons==1) >> (successiveCostArray[idx]==parts[v1]->getSuccCost()));
+                    rel(home, (succPCons==1) >> (successiveCostArray[idx]==parts[v1]->getSuccCostAt(i)));
                     rel(home, (succPCons==0) >> (successiveCostArray[idx]==0));
                     idx++;
                 }
@@ -564,7 +579,7 @@ void P4_successiveCost(Home home, vector<Part*> parts, int scc_cz, IntVarArray s
                     rel(home, mNotThird, BOT_AND, succFifth, succFifthNotThird);
 
                     rel(home, succPConsAndNotSuccFifths, BOT_OR, succFifthNotThird, applyCost);
-                    rel(home, (applyCost==1) >> (successiveCostArray[idx]==parts[v1]->getSuccCost()));
+                    rel(home, (applyCost==1) >> (successiveCostArray[idx]==parts[v1]->getSuccCostAt(i)));
                     rel(home, (applyCost==0) >> (successiveCostArray[idx]==0));
 
                     idx++;
@@ -605,7 +620,7 @@ void P4_successiveCost(Home home, vector<Part*> parts, int scc_cz, IntVarArray s
                     rel(home, mNotThird, BOT_AND, succFifth, succFifthNotThird);
 
                     rel(home, succPConsAndNotSuccFifths, BOT_OR, succFifthNotThird, applyCost);
-                    rel(home, (applyCost==1) >> (successiveCostArray[idx]==parts[v1]->getSuccCost()));
+                    rel(home, (applyCost==1) >> (successiveCostArray[idx]==parts[v1]->getSuccCostAt(i)));
                     rel(home, (applyCost==0) >> (successiveCostArray[idx]==0));
 
                     idx++;
@@ -625,7 +640,7 @@ void P4_successiveCost(Home home, vector<Part*> parts, int scc_cz, IntVarArray s
 
                     rel(home, isPCons12[i], BOT_AND, isPCons12[i+1], succPCons);
                     rel(home, succPCons, BOT_AND, notSuccessiveFifths, succPConsNotFifths);
-                    rel(home, (succPConsNotFifths==1) >> (successiveCostArray[idx]==parts[v1]->getSuccCost()));
+                    rel(home, (succPConsNotFifths==1) >> (successiveCostArray[idx]==parts[v1]->getSuccCostAt(i)));
                     rel(home, (succPConsNotFifths==0) >> (successiveCostArray[idx]==0));
                     idx++;
                 }
@@ -664,7 +679,7 @@ void P1_1_3v_noDirectMotionFromPerfectConsonance(Home home, Part* part){
     for(int j = 0; j < part->getFirstSpeciesMotions().size()-1; j++){
         //set a cost when it is reached through direct motion, it is 0 when not
         rel(home, (part->getFirstSpeciesMotions()[j]==2&&(part->getFirstSpeciesHIntervals()[j+1]==0||part->getFirstSpeciesHIntervals()[j+1]==7))>>
-            (part->getDirectCostArray()[j]==part->getDirectCost()));
+            (part->getDirectCostArray()[j]==part->getDirectMoveCostAt(j)));
         rel(home, (part->getFirstSpeciesMotions()[j]!=2||(part->getFirstSpeciesHIntervals()[j+1]!=0&&part->getFirstSpeciesHIntervals()[j+1]!=7))>>
             (part->getDirectCostArray()[j]==0));
     }

@@ -46,4 +46,15 @@ void saveMidiGeneral(const std::string& filename,
                         const std::vector<int>& raw_solution,
                         const std::vector<Species>& spList);
 
+// Dorian Genon
+
+/**
+ * Sauvegarde MIDI pour expériences — fonctionne pour 2, 3 ou 4 voix.
+ * Les voix de contrepoint sont triées du plus aigu au plus grave.
+ * Le cantus firmus est toujours en dernière piste (tout en bas sur partition).
+ */
+void saveMidiExperiment(const std::string& filename,
+                        const std::vector<int>& cantusFirmus,
+                        const std::vector<std::pair<std::vector<int>, Species>>& voices);
+
 #endif

@@ -95,7 +95,7 @@ void H8_3v_preferHarmonicTriad(Home home, Part* part, IntVarArray triadCostArray
 /**
  * 1.H8 : the harmonic triad should be used as much as possible (4 voices)
  */
-void H8_4v_preferHarmonicTriad(Home home, IntVarArray triadCostArray, Stratum* upper1, Stratum* upper2, Stratum* upper3);
+void H8_4v_preferHarmonicTriad(Home home, IntVarArray triadCostArray, Stratum* upper1, Stratum* upper2, Stratum* upper3, int triadCost);
 
 /* ================================================
  *              MELODIC CONSTRAINTS

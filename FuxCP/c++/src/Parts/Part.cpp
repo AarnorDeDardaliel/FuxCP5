@@ -4,10 +4,11 @@
 //
 
 #include "../../headers/Parts/Part.hpp"
+#include "../../headers/CostModel.hpp"
 
 /// This class represents a part, so it creates all the variables associated to that part and posts the constraints that are species independent
 Part::Part(Home home, int nMes, Species sp, vector<int> cf, int lb, int ub, int v_type, vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, 
-    int nV, int bm) : 
+    int nV, int bm, const vector<double>& melodicShape, const CostModel* costModel, int voiceIndex) : 
     Voice(home, nMes, lb, ub){
     nVoices         = nV;
     species = sp;
@@ -45,6 +46,55 @@ Part::Part(Home home, int nMes, Species sp, vector<int> cf, int lb, int ub, int 
     seventhCost = m_costs[6];
     octaveCost = m_costs[7];
 
+    // Dorian Genon
+    this->melodicShape = melodicShape;
+    if (costModel != nullptr && costModel->isGrouped(COST_MELODIC, voiceIndex)) {
+        // Nouvelle API : shape mélodique via CostModel, par voix et par position
+        int nPos = nMes - 1;
+        secondCostProfile.resize(nPos);
+        thirdCostProfile.resize(nPos);
+        fourthCostProfile.resize(nPos);
+        tritoneCostProfile.resize(nPos);
+        fifthCostProfile.resize(nPos);
+        sixthCostProfile.resize(nPos);
+        seventhCostProfile.resize(nPos);
+        octaveCostProfile.resize(nPos);
+        for (int i = 0; i < nPos; ++i) {
+            vector<int> localCosts = costModel->getGroupCostsAt(COST_MELODIC, i, voiceIndex);
+            secondCostProfile[i]  = localCosts[0];
+            thirdCostProfile[i]   = localCosts[1];
+            fourthCostProfile[i]  = localCosts[2];
+            tritoneCostProfile[i] = localCosts[3];
+            fifthCostProfile[i]   = localCosts[4];
+            sixthCostProfile[i]   = localCosts[5];
+            seventhCostProfile[i] = localCosts[6];
+            octaveCostProfile[i]  = localCosts[7];
+        }
+    } else if (!melodicShape.empty()) {
+        // Ancienne API — rétrocompatibilité
+        // La fonction steps1 est utilisée par défaut avec la melodicShape passée directement.
+        // Pour utiliser une autre fonction, passer par le CostModel (nouvelle API).
+        secondCostProfile.resize(melodicShape.size());
+        thirdCostProfile.resize(melodicShape.size());
+        fourthCostProfile.resize(melodicShape.size());
+        tritoneCostProfile.resize(melodicShape.size());
+        fifthCostProfile.resize(melodicShape.size());
+        sixthCostProfile.resize(melodicShape.size());
+        seventhCostProfile.resize(melodicShape.size());
+        octaveCostProfile.resize(melodicShape.size());
+        for (size_t i = 0; i < melodicShape.size(); ++i) {
+            vector<int> localCosts = steps1(melodicShape[i]);
+            secondCostProfile[i]  = localCosts[0];
+            thirdCostProfile[i]   = localCosts[1];
+            fourthCostProfile[i]  = localCosts[2];
+            tritoneCostProfile[i] = localCosts[3];
+            fifthCostProfile[i]   = localCosts[4];
+            sixthCostProfile[i]   = localCosts[5];
+            seventhCostProfile[i] = localCosts[6];
+            octaveCostProfile[i]  = localCosts[7];
+        }
+    }
+
     borrowCost = g_costs[0];
     h_fifthCost = g_costs[1];
     h_octaveCost = g_costs[2];
@@ -62,9 +112,13 @@ Part::Part(Home home, int nMes, Species sp, vector<int> cf, int lb, int ub, int 
     syncopationCost = s_costs[5];
     prefSlider = s_costs[6];
 
-    directCost = 0;
+    directCost = 2;
     obliqueCost = 1;
-    contraryCost = 2;
+    contraryCost = 0;
+
+    if (costModel != nullptr) {
+        buildCostProfiles(*costModel, voiceIndex, nMes - 1, notes.size());
+    }
 }
 
 string Part::to_string() const{
@@ -73,6 +127,52 @@ string Part::to_string() const{
     part += intVarArray_to_string(costs);
     part += "\n";
     return part;
+}
+
+// =====================================================================
+// Dorian Genon — construction des profiles positionnels
+// Pour chaque coût, si le CostModel définit une shape, on calcule
+// le profil complet sur nPositions. Sinon le profil reste vide
+// et l'accesseur retourne la valeur fixe.
+// =====================================================================
+void Part::buildCostProfiles(const CostModel& model, int voiceIdx, int nPosByMeasure, int nPosByNote) {
+
+    // Build par mesure
+    auto buildByMeasure = [&](int costIndex, int fixedVal, vector<int>& profile) {
+        if (model.isGrouped(costIndex, voiceIdx)) {
+            profile.resize(nPosByMeasure);
+            for (int i = 0; i < nPosByMeasure; ++i) {
+                int v = model.getCostAt(costIndex, i, voiceIdx);
+                profile[i] = (v >= 0) ? v : fixedVal;
+            }
+        }
+    };
+
+    // Build par note
+    auto buildByNote = [&](int costIndex, int fixedVal, vector<int>& profile) {
+        if (model.isGrouped(costIndex, voiceIdx)) {
+            profile.resize(nPosByNote);
+            for (int i = 0; i < nPosByNote; ++i) {
+                int measureIdx = (nPosByMeasure > 0) ? 
+                    i * nPosByMeasure / nPosByNote : 0;
+                int v = model.getCostAt(costIndex, measureIdx, voiceIdx);
+                profile[i] = (v >= 0) ? v : fixedVal;
+            }
+        }
+    };
+
+    buildByNote(COST_BORROW,      borrowCost,      borrowCostProfile);
+    buildByMeasure(COST_FIFTH,       h_fifthCost,     hFifthCostProfile);
+    buildByMeasure(COST_OCTAVE,      h_octaveCost,    hOctaveCostProfile);
+    buildByMeasure(COST_SUCC,        succCost,        succCostProfile);
+    buildByNote(COST_VARIETY,     varietyCost,     varietyCostProfile);
+    buildByMeasure(COST_TRIAD,       triadCost,       triadCostProfile);
+    buildByMeasure(COST_DIRECT,      directMoveCost,  directMoveCostProfile);
+    buildByMeasure(COST_PENULT,      penultCost,      penultCostProfile);
+    buildByMeasure(COST_CAMBIATA,    cambiataCost,    cambiataCostProfile);
+    buildByMeasure(COST_TRIAD3,      triad3rdCost,    triad3rdCostProfile);
+    buildByNote(COST_M2,          m2ZeroCost,      m2ZeroCostProfile);
+    buildByMeasure(COST_SYNCOPATION, syncopationCost, syncopationCostProfile);
 }
 
 
@@ -122,6 +222,30 @@ Part::Part(Home home, Part& s) : Voice(home, s) {
     directCost = s.directCost;
     obliqueCost = s.obliqueCost;
     contraryCost = s.contraryCost;
+
+    
+    melodicShape       = s.melodicShape;
+    secondCostProfile  = s.secondCostProfile;
+    thirdCostProfile   = s.thirdCostProfile;
+    fourthCostProfile  = s.fourthCostProfile;
+    tritoneCostProfile = s.tritoneCostProfile;
+    fifthCostProfile   = s.fifthCostProfile;
+    sixthCostProfile   = s.sixthCostProfile;
+    seventhCostProfile = s.seventhCostProfile;
+    octaveCostProfile  = s.octaveCostProfile;
+    // Dorian Genon — copie des profiles positionnels
+    borrowCostProfile      = s.borrowCostProfile;
+    hFifthCostProfile      = s.hFifthCostProfile;
+    hOctaveCostProfile     = s.hOctaveCostProfile;
+    succCostProfile        = s.succCostProfile;
+    varietyCostProfile     = s.varietyCostProfile;
+    triadCostProfile       = s.triadCostProfile;
+    directMoveCostProfile  = s.directMoveCostProfile;
+    penultCostProfile      = s.penultCostProfile;
+    cambiataCostProfile    = s.cambiataCostProfile;
+    triad3rdCostProfile    = s.triad3rdCostProfile;
+    m2ZeroCostProfile      = s.m2ZeroCostProfile;
+    syncopationCostProfile = s.syncopationCostProfile;
 
     cost_names = s.cost_names;
 
@@ -239,6 +363,100 @@ int Part::getSeventhCost(){
 }
 int Part::getOctaveCost(){
     return octaveCost;
+}
+
+int Part::getSecondCostAt(int idx) const {
+    if (idx >= 0 && idx < (int)secondCostProfile.size()) return secondCostProfile[idx];
+    return secondCost;
+}
+int Part::getThirdCostAt(int idx) const {
+    if (idx >= 0 && idx < (int)thirdCostProfile.size()) return thirdCostProfile[idx];
+    return thirdCost;
+}
+int Part::getFourthCostAt(int idx) const {
+    if (idx >= 0 && idx < (int)fourthCostProfile.size()) return fourthCostProfile[idx];
+    return fourthCost;
+}
+int Part::getTritoneCostAt(int idx) const {
+    if (idx >= 0 && idx < (int)tritoneCostProfile.size()) return tritoneCostProfile[idx];
+    return tritoneCost;
+}
+int Part::getFifthCostAt(int idx) const {
+    if (idx >= 0 && idx < (int)fifthCostProfile.size()) return fifthCostProfile[idx];
+    return fifthCost;
+}
+int Part::getSixthCostAt(int idx) const {
+    if (idx >= 0 && idx < (int)sixthCostProfile.size()) return sixthCostProfile[idx];
+    return sixthCost;
+}
+int Part::getSeventhCostAt(int idx) const {
+    if (idx >= 0 && idx < (int)seventhCostProfile.size()) return seventhCostProfile[idx];
+    return seventhCost;
+}
+int Part::getOctaveCostAt(int idx) const {
+    if (idx >= 0 && idx < (int)octaveCostProfile.size()) return octaveCostProfile[idx];
+    return octaveCost;
+}
+
+int Part::getBorrowCostAt(int idx) const {
+    if (idx >= 0 && idx < (int)borrowCostProfile.size())
+        return borrowCostProfile[idx];
+    return borrowCost;
+}
+int Part::getHFifthCostAt(int idx) const {
+    if (idx >= 0 && idx < (int)hFifthCostProfile.size())
+        return hFifthCostProfile[idx];
+    return h_fifthCost;
+}
+int Part::getHOctaveCostAt(int idx) const {
+    if (idx >= 0 && idx < (int)hOctaveCostProfile.size())
+        return hOctaveCostProfile[idx];
+    return h_octaveCost;
+}
+int Part::getSuccCostAt(int idx) const {
+    if (idx >= 0 && idx < (int)succCostProfile.size())
+        return succCostProfile[idx];
+    return succCost;
+}
+int Part::getVarietyCostAt(int idx) const {
+    if (idx >= 0 && idx < (int)varietyCostProfile.size())
+        return varietyCostProfile[idx];
+    return varietyCost;
+}
+int Part::getTriadCostAt(int idx) const {
+    if (idx >= 0 && idx < (int)triadCostProfile.size())
+        return triadCostProfile[idx];
+    return triadCost;
+}
+int Part::getDirectMoveCostAt(int idx) const {
+    if (idx >= 0 && idx < (int)directMoveCostProfile.size())
+        return directMoveCostProfile[idx];
+    return directMoveCost;
+}
+int Part::getPenultCostAt(int idx) const {
+    if (idx >= 0 && idx < (int)penultCostProfile.size())
+        return penultCostProfile[idx];
+    return penultCost;
+}
+int Part::getCambiataCostAt(int idx) const {
+    if (idx >= 0 && idx < (int)cambiataCostProfile.size())
+        return cambiataCostProfile[idx];
+    return cambiataCost;
+}
+int Part::getTriad3rdCostAt(int idx) const {
+    if (idx >= 0 && idx < (int)triad3rdCostProfile.size())
+        return triad3rdCostProfile[idx];
+    return triad3rdCost;
+}
+int Part::getM2ZeroCostAt(int idx) const {
+    if (idx >= 0 && idx < (int)m2ZeroCostProfile.size())
+        return m2ZeroCostProfile[idx];
+    return m2ZeroCost;
+}
+int Part::getSyncopationCostAt(int idx) const {
+    if (idx >= 0 && idx < (int)syncopationCostProfile.size())
+        return syncopationCostProfile[idx];
+    return syncopationCost;
 }
 
 IntVarArray Part::getMelodicDegreeCost(){

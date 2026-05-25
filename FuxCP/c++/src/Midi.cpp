@@ -1,3 +1,5 @@
+// Fichier de Sacha de Menten et Bryce Burignat
+
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -40,13 +42,16 @@ static std::vector<int> smoothen4th(const std::vector<int>& sol) {
     std::vector<int> out;
     out.reserve((sol.size() + 1) / 2);
 
-    for (size_t i = 0; i < sol.size(); ) {
+    for (size_t i = 0; i < sol.size()-2; ) {
         int v = sol[i];
         out.push_back(v);
         i += 1;
         // skip one if duplicated
-        if (i < sol.size() && sol[i] == v) i += 1;
+        if (i < sol.size()-2 && sol[i] == v) i += 1;
     }
+    // Toujours garder les 2 dernières notes telles quelles
+    out.push_back(sol[sol.size() - 2]);
+    out.push_back(sol[sol.size() - 1]);
     return out;
 }
 
@@ -86,7 +91,6 @@ static void addVoiceEvents(std::vector<MidiEvent>& events,
         case THIRD_SPECIES:  cpDur = rondeDur / 4; break;
         case FOURTH_SPECIES:
             cpDur = rondeDur;
-            notes = smoothen4th(raw_notes);
             break;
         case FIFTH_SPECIES:  cpDur = rondeDur / 4; break;
         case CANTUS_FIRMUS:  cpDur = rondeDur;     break;
@@ -96,18 +100,36 @@ static void addVoiceEvents(std::vector<MidiEvent>& events,
     uint8_t noteOn  = 0x90 | (channel & 0x0F);
     uint8_t noteOff = 0x80 | (channel & 0x0F);
 
-    if (species == FOURTH_SPECIES && notes.size() > 1) {
-        size_t i;
-        for (i = 0; i < notes.size() - 1; ++i) {
-            uint32_t start = i * cpDur + cpDur / 2;
-            events.push_back({start, noteOn, (uint8_t)notes[i], velocity});
-            events.push_back({start + cpDur, noteOff, (uint8_t)notes[i], 0});
+    if (species == FOURTH_SPECIES && raw_notes.size() > 1) {
+        size_t n = raw_notes.size();
+        bool lastIsSyncope = (raw_notes[n-2] == raw_notes[n-1]);
+        
+        // Toutes les syncopes sauf la fin
+        size_t measure = 0;
+        for (size_t i = 0; i < n - 2; i += 2) {
+            uint32_t start = measure * cpDur + cpDur / 2;
+            events.push_back({start, noteOn,  (uint8_t)raw_notes[i], velocity});
+            events.push_back({start + cpDur,  noteOff, (uint8_t)raw_notes[i], 0});
+            measure++;
         }
-        // Dernière note sans décalage
-        uint32_t start = i * cpDur;
-        events.push_back({start, noteOn, (uint8_t)notes[i], velocity});
-        events.push_back({start + cpDur, noteOff, (uint8_t)notes[i], 0});
-    } else {
+        if (lastIsSyncope) {
+            // Dernière syncope : ronde entière sur arsis + thesis
+            uint32_t start = measure * cpDur + cpDur / 2;
+            events.push_back({start, noteOn,  (uint8_t)raw_notes[n-2], velocity});
+            events.push_back({start + cpDur,  noteOff, (uint8_t)raw_notes[n-2], 0});
+        } else {
+            // Pas de syncope finale : avant-dernière en demi-ronde
+            uint32_t start_pen = measure * cpDur + cpDur / 2;
+            events.push_back({start_pen, noteOn,  (uint8_t)raw_notes[n-2], velocity});
+            events.push_back({start_pen + cpDur/2, noteOff, (uint8_t)raw_notes[n-2], 0});
+            measure++;
+            // Dernière note en ronde pleine
+            uint32_t start_last = measure * cpDur;
+            events.push_back({start_last, noteOn,  (uint8_t)raw_notes[n-1], velocity});
+            events.push_back({start_last + cpDur,  noteOff, (uint8_t)raw_notes[n-1], 0});
+        }
+    }
+    else {
         for (size_t i = 0; i < notes.size(); ++i) {
             uint32_t start = i * cpDur;
             events.push_back({start, noteOn, (uint8_t)notes[i], velocity});
@@ -225,4 +247,45 @@ void saveMidiGeneral(const std::string& filename,
     }
 
     saveMidiMultiVoice(filename, cantusFirmus, voices);
+}
+
+
+// Dorian Genon
+
+void saveMidiExperiment(const std::string& filename,
+                        const std::vector<int>& cantusFirmus,
+                        const std::vector<std::pair<std::vector<int>, Species>>& voices) {
+
+    const uint32_t PPQ      = 480;
+    uint32_t       rondeDur = PPQ * 4;
+
+    // N+1 pistes : pistes 0..N-1 = contrepoints (du plus aigu au plus grave)
+    // piste N = cantus firmus (tout en bas)
+    // Pour l'ordre sur partition : on trie les voix du plus aigu au plus grave
+    // selon leur première note, puis CF en dernier.
+
+    // Tri des voix par hauteur décroissante (aigu en haut, grave en bas)
+    std::vector<std::pair<std::vector<int>, Species>> sorted_voices = voices;
+    std::sort(sorted_voices.begin(), sorted_voices.end(),
+        [](const std::pair<std::vector<int>, Species>& a,
+           const std::pair<std::vector<int>, Species>& b) {
+            if (a.first.empty() || b.first.empty()) return false;
+            return a.first[0] > b.first[0]; // aigu d'abord
+        }
+    );
+
+    std::vector<std::vector<MidiEvent>> tracks(sorted_voices.size() + 1);
+
+    // Pistes 0..N-1 : contrepoints, du plus aigu au plus grave
+    for (size_t v = 0; v < sorted_voices.size(); ++v) {
+        addVoiceEvents(tracks[v], sorted_voices[v].first,
+                       sorted_voices[v].second,
+                       (uint8_t)(v + 1), 80, rondeDur);
+    }
+
+    // Dernière piste : cantus firmus — channel 0, velocity 64
+    addVoiceEvents(tracks[sorted_voices.size()], cantusFirmus,
+                   CANTUS_FIRMUS, 0, 64, rondeDur);
+
+    writeMidiFile(filename, tracks, PPQ);
 }

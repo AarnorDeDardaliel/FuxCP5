@@ -9,8 +9,8 @@
  * Second species constructor. Does general constructing. Then calls the general first species constructor
  */
 SecondSpeciesCounterpoint::SecondSpeciesCounterpoint(Home home, int size, vector<int> cf,int lb, int ub, int mSpec, Stratum* low, CantusFirmus* c, int v_type
-    , vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV):
-    FirstSpeciesCounterpoint(home, size, cf, lb, ub, SECOND_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV) /// super constructor. Applies all rules for the first species to the 1st note of each measure
+    , vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV, const vector<double>& melodicShape, const CostModel* costModel, int voiceIndex) :
+    FirstSpeciesCounterpoint(home, size, cf, lb, ub, SECOND_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV, melodicShape, costModel, voiceIndex) /// super constructor. Applies all rules for the first species to the 1st note of each measure
 {
     /// Second species notes in the counterpoint
     secondSpeciesNotesCp = IntVarArray(home, (nMeasures*notesPerMeasure.at(SECOND_SPECIES))-1, IntSet(IntArgs(domain)));
@@ -108,7 +108,7 @@ SecondSpeciesCounterpoint::SecondSpeciesCounterpoint(Home home, int size, vector
 
     }
 
-    penultCostArray = IntVarArray(home, 1, IntSet({0, penultCost}));
+    penultCostArray = IntVarArray(home, 1, 0, penultCost);
     /// Constraints
 
     // 2.H2 : Arsis harmonies cannot be dissonant except if there is a diminution.
@@ -150,10 +150,10 @@ SecondSpeciesCounterpoint::SecondSpeciesCounterpoint(Home home, int size, vector
  * 2 VOICES CONSTRUCTOR
  */
 SecondSpeciesCounterpoint::SecondSpeciesCounterpoint(Home home, int size, vector<int> cf,int lb, int ub, Stratum* low, CantusFirmus* c, int v_type
-    , vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV) :
-    SecondSpeciesCounterpoint(home, size, cf, lb, ub, SECOND_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV)
+    , vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV, const vector<double>& melodicShape, const CostModel* costModel, int voiceIndex) :
+    SecondSpeciesCounterpoint(home, size, cf, lb, ub, SECOND_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV, melodicShape, costModel, voiceIndex)
 {
-    varietyCostArray = IntVarArray(home, 3*(secondSpeciesHarmonicIntervals.size()-2), IntSet({0, varietyCost}));
+    varietyCostArray = IntVarArray(home, 3*(secondSpeciesHarmonicIntervals.size()-2), 0, varietyCost);
 
     costs = IntVarArray(home, 7, 0, 1000000);
     cost_names = {"fifth", "octave", "motion", "melodic", "borrow", "penult", "variety"};
@@ -195,19 +195,21 @@ SecondSpeciesCounterpoint::SecondSpeciesCounterpoint(Home home, int size, vector
  * 3 VOICES CONSTRUCTOR
  */
 SecondSpeciesCounterpoint::SecondSpeciesCounterpoint(Home home, int size, vector<int> cf,int lb, int ub, Stratum* low, CantusFirmus* c, int v_type, 
-    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2) :
-    SecondSpeciesCounterpoint(home, size, cf, lb, ub, SECOND_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV2)
+    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2, const vector<double>& melodicShape, const CostModel* costModel, int voiceIndex) :
+    SecondSpeciesCounterpoint(home, size, cf, lb, ub, SECOND_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV2, melodicShape, costModel, voiceIndex)
 {
     costs = IntVarArray(home, 8, 0, 1000000);
 
-    varietyCostArray = IntVarArray(home, 3*(secondSpeciesHarmonicIntervals.size()-2), IntSet({0, varietyCost}));
-    directCostArray = IntVarArray(home, secondSpeciesRealMotions.size()-1,IntSet({0, directMoveCost}));
+    varietyCostArray = IntVarArray(home, 3*(secondSpeciesHarmonicIntervals.size()-2), 0, varietyCost);
+    directCostArray = IntVarArray(home, secondSpeciesRealMotions.size()-1, 0, directMoveCost);
 
     // DISABLED
     // // 2.H3 : penult cost
     // if (activeConstraints[SP2_2H3_3V]) {
     //     H3_2_penultimateNoteDomain(home, this);
     // }
+    // Forcer à 0 puisque désactivé en 3V
+    rel(home, penultCostArray[0], IRT_EQ, 0);
 
     //P1 3 voices version
     if (activeConstraints[SP2_1P1_3V]) {
@@ -238,21 +240,23 @@ SecondSpeciesCounterpoint::SecondSpeciesCounterpoint(Home home, int size, vector
  * 4 VOICES CONSTRUCTOR
  */
 SecondSpeciesCounterpoint::SecondSpeciesCounterpoint(Home home, int size, vector<int> cf,int lb, int ub, Stratum* low, CantusFirmus* c, int v_type, 
-    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2, int nV3) :
-    SecondSpeciesCounterpoint(home, size, cf, lb, ub, SECOND_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV3)
+    vector<int> m_costs, vector<int> g_costs, vector<int> s_costs, int bm, int nV1, int nV2, int nV3, const vector<double>& melodicShape, const CostModel* costModel, int voiceIndex) :
+    SecondSpeciesCounterpoint(home, size, cf, lb, ub, SECOND_SPECIES, low, c, v_type, m_costs, g_costs, s_costs, bm, nV3, melodicShape, costModel, voiceIndex)
 {
     
     costs = IntVarArray(home, 8, 0, 1000000);
     cost_names = {"fifth", "octave", "motion", "melodic", "borrow", "variety", "direct", "penult"};
 
-    varietyCostArray = IntVarArray(home, 3*(secondSpeciesHarmonicIntervals.size()-2), IntSet({0, varietyCost}));
-    directCostArray = IntVarArray(home, secondSpeciesRealMotions.size()-1,IntSet({0, 2, directMoveCost}));
+    varietyCostArray = IntVarArray(home, 3*(secondSpeciesHarmonicIntervals.size()-2), 0, varietyCost);
+    directCostArray = IntVarArray(home, secondSpeciesRealMotions.size()-1, 0, directMoveCost);
 
     // DISABLED
     // 2.H3 : penult cost
     // if (activeConstraints[SP2_2H3_4V]) {
     //     H3_2_penultimateNoteDomain(home, this);
     // }
+    // Forcer à 0 puisque désactivé en 3V
+    rel(home, penultCostArray[0], IRT_EQ, 0);
     
     //P1 4 voices version
     if (activeConstraints[SP2_1P1_4V]) {

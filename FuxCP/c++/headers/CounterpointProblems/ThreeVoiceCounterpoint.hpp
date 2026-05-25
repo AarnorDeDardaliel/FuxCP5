@@ -11,6 +11,7 @@
 #include "../Parts/SecondSpeciesCounterpoint.hpp"
 #include "../Parts/ThirdSpeciesCounterpoint.hpp"
 #include "../Parts/CantusFirmus.hpp"
+#include "../CostModel.hpp"
 
 /**
  * This class models a counterpoint problem with 3 voices.
@@ -30,7 +31,15 @@ public:
      * @param ub the highest note possible for the counterpoint in MIDI
      */
     ThreeVoiceCounterpoint(vector<int> cf, vector<Species> sp, vector<int> v_type, vector<int> m_costs, vector<int> g_costs, 
-        vector<int> s_costs, vector<int> imp, int bm, ObjectiveMode objMode = OBJECTIVE_LEX);
+        vector<int> s_costs, vector<int> imp, int bm, ObjectiveMode objMode = OBJECTIVE_LEX, const vector<double>& melodicShape = {});
+
+    // Dorian Genon — nouvelle API avec CostModel
+    // Les coûts passés à CounterpointProblem sont des valeurs d'initialisation à pos=0, voix=0.
+    // Les vrais profils positionnels par voix sont construits dans Part via buildCostProfiles.
+    ThreeVoiceCounterpoint(vector<int> cf, vector<Species> sp, vector<int> v_type,
+        const CostModel& costModel,
+        vector<int> imp, int bm,
+        ObjectiveMode objMode = OBJECTIVE_LEX);
 
     ThreeVoiceCounterpoint(ThreeVoiceCounterpoint& s);
     IntLexMinimizeSpace* copy() override; 
