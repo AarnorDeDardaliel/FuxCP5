@@ -3,7 +3,7 @@
 // This file contains the implementations of the functions that post the constraints.  
 //
 
-#include "../../headers/Parts/constraints.hpp"
+#include "../headers/constraints.hpp"
 
 void initializeIsOffArray(Home home, Part* part){
     for(int i = 0; i < part->getIsOffArray().size(); i++){                              //loop goes through every note of the counterpoint
@@ -136,116 +136,6 @@ void H2_3_disonanceImpliesDiminution(Home home, Part* part){
         BoolVar band2 = BoolVar(home, 0, 1);
 
         rel(home, part->getConsonance()[(i*4)+2], BOT_OR, part->getIsDiminution()[i], 1);
-    }
-}
-
-// Returns the index, in another voice's note array, of its strong-beat (downbeat) note
-// for measure i. Only strong beats are guaranteed pinned: a slow voice's intermediate
-// cells (i*4+1, +2, +3) are free variables (see FirstSpeciesCounterpoint.cpp slice).
-// The CantusFirmus stores one note per measure (index i); other parts store four.
-static int strongBeatIndex(Part* voice, int i){
-    return (voice->getSpecies() == CANTUS_FIRMUS) ? i : i*4;
-}
-
-void H2_2_arsisHarmoniesCannotBeDisonnant_multiVoice(Home home, Part* secondSpPart, vector<Part*> otherVoices){
-    // h_intervals stored on each Part are computed only against the lowest stratum.
-    // In 3+ voice settings, the dissonance between the 2nd-species arsis and any
-    // OTHER voice is therefore never checked. Fux rule: a disjunct weak beat must be
-    // consonant with every sounding voice. We compare the arsis (index i*4+2, pinned
-    // for 2nd species) against each other voice's STRONG beat (only pinned reference),
-    // and tie the dissonance escape to isDiminution[i] (the 2nd-species passing flag).
-    for(int i = 0; i < secondSpPart->getNMeasures()-1; i++){
-        if(i == secondSpPart->getNMeasures()-2) continue; // skip penultimate (same as base H2_2)
-        for(Part* other : otherVoices){
-            if(other == secondSpPart) continue;
-            IntVar interval(home, 0, 11);
-            rel(home, interval == abs(secondSpPart->getNotes()[i*4+2] - other->getNotes()[strongBeatIndex(other, i)]) % 12);
-            for(int d : DISONANCE){
-                rel(home, interval, IRT_EQ, d, Reify(secondSpPart->getIsDiminution()[i], RM_PMI));
-            }
-        }
-    }
-}
-
-void H2_3_disonanceImpliesDiminution_multiVoice(Home home, Part* thirdSpPart, vector<Part*> otherVoices){
-    // 3rd species has 4 notes per measure: 1 strong beat (i*4) + 3 weak beats (i*4+1,+2,+3).
-    // The base H2_3 only checks the central weak beat (+2) against the bass. Here we check
-    // ALL three weak beats against EVERY other voice's strong beat. A weak beat may be
-    // dissonant only if it is a genuine passing tone: approached AND left by step (1..2
-    // semitones). All four cells are pinned for 3rd species, so melodic moves use them directly.
-    int nM = thirdSpPart->getNMeasures();
-    for(int i = 0; i < nM-1; i++){
-        for(int k = 1; k <= 3; k++){
-            int j = i*4 + k; // weak-beat instant (pinned for 3rd species)
-            IntVar inMove  = expr(home, abs(thirdSpPart->getNotes()[j]   - thirdSpPart->getNotes()[j-1]));
-            IntVar outMove = expr(home, abs(thirdSpPart->getNotes()[j+1] - thirdSpPart->getNotes()[j]));
-            BoolVar inStep  = expr(home, inMove  >= 1 && inMove  <= 2);
-            BoolVar outStep = expr(home, outMove >= 1 && outMove <= 2);
-            BoolVar isPassing = expr(home, inStep && outStep); // approached AND left by step
-            for(Part* other : otherVoices){
-                if(other == thirdSpPart) continue;
-                IntVar interval(home, 0, 11);
-                rel(home, interval == abs(thirdSpPart->getNotes()[j] - other->getNotes()[strongBeatIndex(other, i)]) % 12);
-                for(int d : DISONANCE){
-                    rel(home, interval, IRT_EQ, d, Reify(isPassing, RM_PMI));
-                }
-            }
-        }
-    }
-}
-
-// Index used to read a voice's harmony note for the SECOND half of a measure.
-// Only a 4th-species voice changes harmony mid-measure: its suspension (downbeat) resolves
-// on the 3rd beat (Bitsch §59), so it contributes its resolution note (i*4+2). Every other
-// voice holds its downbeat note across the whole measure.
-static int resolutionBeatIndex(Part* voice, int i){
-    return (voice->getSpecies() == FOURTH_SPECIES) ? i*4+2 : strongBeatIndex(voice, i);
-}
-
-void chordMembershipOnDisjunctWeakBeats(Home home, Part* sp, vector<Part*> allVoices){
-    // MANDATORY tonal rule (Bitsch §59). A disjunct weak-beat note must belong to the
-    // harmony of its half-measure (set of pitch classes of the structural notes of all
-    // voices). Normally a single harmony spans the whole measure (the downbeat pitch
-    // classes). A 4th-species voice doubles the harmonic rhythm: its suspension resolves
-    // on the 3rd beat, yielding a SECOND harmony for the 2nd half of the measure. So:
-    //   - weak beat +1 (1st half) is checked against the 1st-half harmony (downbeats);
-    //   - weak beats +2/+3 (2nd half) against the 2nd-half harmony (4th-species resolution).
-    // With no 4th-species voice the two harmonies coincide (single harmony per measure).
-    // Genuine passing tones (approached AND left by step) are exempt; the penultimate
-    // measure (cadence) is exempt.
-    int spc = sp->getSpecies();
-    vector<int> offsets;
-    if(spc == SECOND_SPECIES) offsets = {2};
-    else if(spc == THIRD_SPECIES) offsets = {1,2,3};
-    else return;
-
-    int nM = sp->getNMeasures();
-    for(int i = 0; i < nM-1; i++){
-        if(i == nM-2) continue; // penultimate measure exception (cadence)
-        for(int k : offsets){
-            int j = i*4 + k;
-            // passing-tone test (approached AND left by step)
-            BoolVar isPassing(home, 0, 1);
-            if(spc == THIRD_SPECIES){
-                IntVar inMove  = expr(home, abs(sp->getNotes()[j]   - sp->getNotes()[j-1]));
-                IntVar outMove = expr(home, abs(sp->getNotes()[j+1] - sp->getNotes()[j]));
-                isPassing = expr(home, (inMove >= 1 && inMove <= 2) && (outMove >= 1 && outMove <= 2));
-            } else { // SECOND_SPECIES: neighbours of the arsis are the real (pinned) thesis notes
-                IntVar inMove  = expr(home, abs(sp->getNotes()[i*4+2]   - sp->getNotes()[i*4]));
-                IntVar outMove = expr(home, abs(sp->getNotes()[(i+1)*4] - sp->getNotes()[i*4+2]));
-                isPassing = expr(home, (inMove >= 1 && inMove <= 2) && (outMove >= 1 && outMove <= 2));
-            }
-            // weak beat +1 belongs to the 1st-half harmony, +2/+3 to the 2nd-half harmony
-            bool firstHalf = (k == 1);
-            IntVar pc = expr(home, sp->getNotes()[j] % 12);
-            BoolVarArgs inChord;
-            for(Part* v : allVoices){
-                int idx = firstHalf ? strongBeatIndex(v, i) : resolutionBeatIndex(v, i);
-                inChord << expr(home, pc == (v->getNotes()[idx] % 12));
-            }
-            BoolVar anyInChord = expr(home, sum(inChord) >= 1);
-            rel(home, isPassing, BOT_OR, anyInChord, 1); // disjunct => must be in (half-)chord
-        }
     }
 }
 
@@ -530,16 +420,6 @@ void P1_1_2v_noDirectMotionFromPerfectConsonance(Home home, Part* part){
     }
 }
 
-void P1_1_3v_noDirectMotionFromPerfectConsonance(Home home, Part* part){
-    for(int j = 0; j < part->getFirstSpeciesMotions().size()-1; j++){
-        //set a cost when it is reached through direct motion, it is 0 when not
-        rel(home, (part->getFirstSpeciesMotions()[j]==2&&(part->getFirstSpeciesHIntervals()[j+1]==0||part->getFirstSpeciesHIntervals()[j+1]==7))>>
-            (part->getDirectCostArray()[j]==part->getDirectCost()));
-        rel(home, (part->getFirstSpeciesMotions()[j]!=2||(part->getFirstSpeciesHIntervals()[j+1]!=0&&part->getFirstSpeciesHIntervals()[j+1]!=7))>>
-            (part->getDirectCostArray()[j]==0));
-    }
-}
-
 void P1_1_4v_noDirectMotionFromPerfectConsonance(Home home, Part* part){
     for(int j = 0; j < part->getFirstSpeciesMotions().size()-1; j++){
 
@@ -620,132 +500,148 @@ void P3_2_noBattuta(Home home, Part* part){
     }
 }
 
-void setCostFromBool(Home home, BoolVar trigger, IntVar target, int cost) {
-    rel(home, (trigger == 1) >> (target == cost));
-    rel(home, (trigger == 0) >> (target == 0));
-}
-
-
-void applySecondSpeciesSuccessiveCost(Home home, Part* secondSpeciesPart, const IntVarArray& hIntervals, const BoolVarArray& isPerfectConsonance, IntVarArray successiveCostArray, int& idx, int appliedCost) {
-    for (int i = 0; i < isPerfectConsonance.size()-1; i++) {
-        BoolVar firstNotFifth(home, 0, 1);
-        BoolVar secondNotFifth(home, 0, 1);
-        BoolVar notSuccessiveFifths(home, 0, 1);
-
-        BoolVar successivePerfect(home, 0, 1);
-        BoolVar successivePerfectNotFifths(home, 0, 1);
-
-        BoolVar melodicNotThree(home, 0, 1);
-        BoolVar melodicNotFour(home, 0, 1);
-        BoolVar melodicNotThird(home, 0, 1);
-
-        BoolVar firstFifth(home, 0, 1);
-        BoolVar secondFifth(home, 0, 1);
-        BoolVar successiveFifths(home, 0, 1);
-        BoolVar successiveFifthsWithoutThirdMotion(home, 0, 1);
-
-        BoolVar applyCost(home, 0, 1);
-
-        // Are the two harmonic intervals successive fifths
-        rel(home, hIntervals[i], IRT_NQ, 7, Reify(firstNotFifth));
-        rel(home, hIntervals[i+1], IRT_NQ, 7, Reify(secondNotFifth));
-        rel(home, firstNotFifth, BOT_OR, secondNotFifth, notSuccessiveFifths);
-
-        // Are they two successive perfect consonances
-        rel(home, isPerfectConsonance[i], BOT_AND, isPerfectConsonance[i+1], successivePerfect);
-        rel(home, successivePerfect, BOT_AND, notSuccessiveFifths, successivePerfectNotFifths);
-
-        // Special exception in second species:
-        // if melodic interval is != 3 and != 4
-        rel(home, secondSpeciesPart->getMelodicIntervals()[i*2], IRT_NQ, 3, melodicNotThree);
-        rel(home, secondSpeciesPart->getMelodicIntervals()[i*2], IRT_NQ, 4, melodicNotFour);
-        rel(home, melodicNotThree, BOT_AND, melodicNotFour, melodicNotThird);
-
-        rel(home, hIntervals[i], IRT_EQ, 7, Reify(firstFifth));
-        rel(home, hIntervals[i+1], IRT_EQ, 7, Reify(secondFifth));
-        rel(home, firstFifth, BOT_AND, secondFifth, successiveFifths);
-        rel(home, melodicNotThird, BOT_AND, successiveFifths, successiveFifthsWithoutThirdMotion);
-
-        rel(home, successivePerfectNotFifths, BOT_OR, successiveFifthsWithoutThirdMotion, applyCost);
-
-        setCostFromBool(home, applyCost, successiveCostArray[idx], appliedCost);
-        idx++;
-    }
-}
-
-void P4_successiveCost(Home home, vector<Part*> parts, IntVarArray successiveCostArray){
+void P4_successiveCost(Home home, vector<Part*> parts, int scc_cz, IntVarArray successiveCostArray, vector<Species> species){
     int idx = 0;
+    for(int v1 = 1; v1 < parts.size(); v1++){
+        for(int v2 = v1+1; v2 < parts.size(); v2++){
+            IntVarArray hIntervals12 = IntVarArray(home, parts[v1]->getNMeasures(), 0, MAJOR_SEVENTH);
+            BoolVarArray isPCons12 = BoolVarArray(home, parts[v1]->getNMeasures(), 0, 1);
 
-    for (int v1 = 1; v1 < parts.size(); v1++) {
-        for (int v2 = v1+1; v2 < parts.size(); v2++) {
-            Part* p1 = parts[v1];
-            Part* p2 = parts[v2];
-
-            IntVarArray notes1 = p1->getNotes();
-            IntVarArray notes2 = p2->getNotes();
-            if (notes1.size() != notes2.size()){ // p1 is cantus firmus
-                notes1 = expandCantusNotes(home, notes1);
-            }
-
-            const int nMeasures = p1->getNMeasures();
-            const bool p1Second = p1->getSpecies() == SECOND_SPECIES;
-            const bool p2Second = p2->getSpecies() == SECOND_SPECIES;
-            const bool p1Fourth = p1->getSpecies() == FOURTH_SPECIES;
-            const bool p2Fourth = p2->getSpecies() == FOURTH_SPECIES;
-
-            IntVarArray hIntervals12(home, nMeasures, 0, MAJOR_SEVENTH);
-            if (p1Fourth || p2Fourth) {
-                // For fourth species, compare the syncopated note (index +2) with the
-                // structurally relevant note of the other voice, measure by measure.
-                for (int i = 0; i < nMeasures-1; i++) {
-                    const int idx1 = p1Fourth ? i*4+2 : i*4;
-                    const int idx2 = p2Fourth ? i*4+2 : i*4;
-                    rel(home, hIntervals12[i] == (abs(notes1[idx1] - notes2[idx2]) % 12));
+            if(parts[v1]->getSpecies()==FOURTH_SPECIES || parts[v2]->getSpecies()==FOURTH_SPECIES){
+                if(parts[v1]->getSpecies()==FOURTH_SPECIES && parts[v2]->getSpecies()==FOURTH_SPECIES){
+                    for(int i = 0; i < parts[v1]->getNMeasures()-1; i++){
+                        rel(home, hIntervals12[i]==(abs(parts[v1]->getNotes()[i*4+2]-parts[v2]->getNotes()[i*4+2])%12));
+                    }
+                } else if(parts[v1]->getSpecies()==FOURTH_SPECIES && parts[v2]->getSpecies()!=FOURTH_SPECIES){
+                    for(int i = 0; i < parts[v1]->getNMeasures()-1; i++){
+                        rel(home, hIntervals12[i]==(abs(parts[v1]->getNotes()[i*4+2]-parts[v2]->getNotes()[i*4])%12));
+                    }
+                } else{
+                    for(int i = 0; i < parts[v1]->getNMeasures()-1; i++){
+                        rel(home, hIntervals12[i]==(abs(parts[v1]->getNotes()[i*4]-parts[v2]->getNotes()[i*4+2])%12));
+                    }
                 }
-                rel(home, hIntervals12[nMeasures-1] == (abs(notes1[notes1.size()-1] - notes2[notes2.size()-1]) % 12)); // Final note
+                rel(home, hIntervals12[hIntervals12.size()-1]==(abs(parts[v1]->getNotes()[parts[v1]->getNotes().size()-1]-
+                    parts[v2]->getNotes()[parts[v2]->getNotes().size()-1])%12));
             } else {
-                for (int i = 0; i < nMeasures; i++) {
-                    rel(home, hIntervals12[i] == (abs(notes1[i*4] - notes2[i*4]) % 12));
+                for(int i = 0; i < parts[v1]->getNMeasures(); i++){
+                    rel(home, hIntervals12[i]==(abs(parts[v1]->getNotes()[i*4]-parts[v2]->getNotes()[i*4])%12));
                 }
             }
 
-            BoolVarArray isPCons12(home, hIntervals12.size(), 0, 1);
-            for (int i = 0; i < hIntervals12.size(); i++) {
-                rel(home, expr(home, hIntervals12[i] == UNISSON), BOT_OR, expr(home, hIntervals12[i] == PERFECT_FIFTH), isPCons12[i]);
+            for(int i = 0; i < hIntervals12.size(); i++){
+                rel(home, expr(home, hIntervals12[i]==UNISSON), BOT_OR, expr(home, hIntervals12[i]==PERFECT_FIFTH), isPCons12[i]);
             }
 
-            // ----- Applying constrains -----
-            if (p1Fourth || p2Fourth) { // Second species has priorities because it accepts more
-                for (int i = 0; i < hIntervals12.size()-1; i++) {
-                    BoolVar firstNotFifth(home, 0, 1);
-                    BoolVar secondNotFifth(home, 0, 1);
-                    BoolVar notSuccessiveFifths(home, 0, 1);
+            if(parts[v1]->getSpecies()!=SECOND_SPECIES && parts[v2]->getSpecies()!=SECOND_SPECIES && parts[v1]->getSpecies()!=FOURTH_SPECIES &&
+                parts[v2]->getSpecies()!=FOURTH_SPECIES)
+            {
+                for(int i = 0; i < isPCons12.size()-1; i++){
+                    BoolVar succPCons = BoolVar(home, 0, 1);
+                    rel(home, isPCons12[i], BOT_AND, isPCons12[i+1], succPCons);
+                    rel(home, (succPCons==1) >> (successiveCostArray[idx]==parts[v1]->getSuccCostAt(i)));
+                    rel(home, (succPCons==0) >> (successiveCostArray[idx]==0));
+                    idx++;
+                }
+            }
+            else if(parts[v1]->getSpecies()==SECOND_SPECIES){
+                for(int i = 0; i < isPCons12.size()-1; i++){
+                    BoolVar firstNotFifth = BoolVar(home, 0, 1);
+                    BoolVar secondNotFifth = BoolVar(home, 0, 1);
+                    BoolVar notSuccessiveFifths = BoolVar(home, 0, 1);
+                    BoolVar succPCons = BoolVar(home, 0, 1);
+                    BoolVar succPConsAndNotSuccFifths = BoolVar(home, 0, 1);
 
-                    BoolVar successivePerfect(home, 0, 1);
-                    BoolVar successivePerfectNotFifths(home, 0, 1);
+                    BoolVar mNotThird1 = BoolVar(home, 0, 1);
+                    BoolVar mNotThird2 = BoolVar(home, 0, 1);
+                    BoolVar mNotThird = BoolVar(home, 0, 1);
+                    BoolVar firstFifth = BoolVar(home, 0, 1);
+                    BoolVar secondFifth = BoolVar(home, 0, 1);
+                    BoolVar succFifth = BoolVar(home, 0, 1);
+                    BoolVar succFifthNotThird = BoolVar(home, 0, 1);
+
+                    BoolVar applyCost = BoolVar(home, 0, 1);
 
                     rel(home, hIntervals12[i], IRT_NQ, 7, Reify(firstNotFifth));
                     rel(home, hIntervals12[i+1], IRT_NQ, 7, Reify(secondNotFifth));
                     rel(home, firstNotFifth, BOT_OR, secondNotFifth, notSuccessiveFifths);
 
-                    rel(home, isPCons12[i], BOT_AND, isPCons12[i+1], successivePerfect);
-                    rel(home, successivePerfect, BOT_AND, notSuccessiveFifths, successivePerfectNotFifths);
+                    rel(home, isPCons12[i], BOT_AND, isPCons12[i+1], succPCons);
+                    rel(home, succPCons, BOT_AND, notSuccessiveFifths, succPConsAndNotSuccFifths);
 
-                    setCostFromBool(home, successivePerfectNotFifths, successiveCostArray[idx], p1->getSuccCost());
+                    rel(home, parts[v1]->getMelodicIntervals()[i*2], IRT_NQ, 3, mNotThird1);
+                    rel(home, parts[v1]->getMelodicIntervals()[i*2], IRT_NQ, 4, mNotThird2);
+                    rel(home, mNotThird1, BOT_AND, mNotThird2, mNotThird);
+
+                    rel(home, hIntervals12[i], IRT_EQ, 7, Reify(firstFifth));
+                    rel(home, hIntervals12[i+1], IRT_EQ, 7, Reify(secondFifth));
+                    rel(home, firstFifth, BOT_AND, secondFifth, succFifth);
+                    rel(home, mNotThird, BOT_AND, succFifth, succFifthNotThird);
+
+                    rel(home, succPConsAndNotSuccFifths, BOT_OR, succFifthNotThird, applyCost);
+                    rel(home, (applyCost==1) >> (successiveCostArray[idx]==parts[v1]->getSuccCostAt(i)));
+                    rel(home, (applyCost==0) >> (successiveCostArray[idx]==0));
+
                     idx++;
                 }
-            } else if (p1Second || p2Second){
-                if (p1Second) {
-                    applySecondSpeciesSuccessiveCost(home, p1, hIntervals12, isPCons12, successiveCostArray, idx, p1->getSuccCost());
+            }
+            else if(parts[v2]->getSpecies()==SECOND_SPECIES){
+                for(int i = 0; i < isPCons12.size()-1; i++){
+                    BoolVar firstNotFifth = BoolVar(home, 0, 1);
+                    BoolVar secondNotFifth = BoolVar(home, 0, 1);
+                    BoolVar notSuccessiveFifths = BoolVar(home, 0, 1);
+                    BoolVar succPCons = BoolVar(home, 0, 1);
+                    BoolVar succPConsAndNotSuccFifths = BoolVar(home, 0, 1);
+
+                    BoolVar mNotThird1 = BoolVar(home, 0, 1);
+                    BoolVar mNotThird2 = BoolVar(home, 0, 1);
+                    BoolVar mNotThird = BoolVar(home, 0, 1);
+                    BoolVar firstFifth = BoolVar(home, 0, 1);
+                    BoolVar secondFifth = BoolVar(home, 0, 1);
+                    BoolVar succFifth = BoolVar(home, 0, 1);
+                    BoolVar succFifthNotThird = BoolVar(home, 0, 1);
+
+                    BoolVar applyCost = BoolVar(home, 0, 1);
+
+                    rel(home, hIntervals12[i], IRT_NQ, 7, Reify(firstNotFifth));
+                    rel(home, hIntervals12[i+1], IRT_NQ, 7, Reify(secondNotFifth));
+                    rel(home, firstNotFifth, BOT_OR, secondNotFifth, notSuccessiveFifths);
+
+                    rel(home, isPCons12[i], BOT_AND, isPCons12[i+1], succPCons);
+                    rel(home, succPCons, BOT_AND, notSuccessiveFifths, succPConsAndNotSuccFifths);
+
+                    rel(home, parts[v2]->getMelodicIntervals()[i*2], IRT_NQ, 3, mNotThird1);
+                    rel(home, parts[v2]->getMelodicIntervals()[i*2], IRT_NQ, 4, mNotThird2);
+                    rel(home, mNotThird1, BOT_AND, mNotThird2, mNotThird);
+
+                    rel(home, hIntervals12[i], IRT_EQ, 7, Reify(firstFifth));
+                    rel(home, hIntervals12[i+1], IRT_EQ, 7, Reify(secondFifth));
+                    rel(home, firstFifth, BOT_AND, secondFifth, succFifth);
+                    rel(home, mNotThird, BOT_AND, succFifth, succFifthNotThird);
+
+                    rel(home, succPConsAndNotSuccFifths, BOT_OR, succFifthNotThird, applyCost);
+                    rel(home, (applyCost==1) >> (successiveCostArray[idx]==parts[v1]->getSuccCostAt(i)));
+                    rel(home, (applyCost==0) >> (successiveCostArray[idx]==0));
+
+                    idx++;
                 }
-                if (p2Second) {
-                    applySecondSpeciesSuccessiveCost(home, p2, hIntervals12, isPCons12, successiveCostArray, idx, p1->getSuccCost());
-                }
-            } else {
-                for (int i = 0; i < isPCons12.size()-1; i++) {
-                    BoolVar successivePerfect(home, 0, 1);
-                    rel(home, isPCons12[i], BOT_AND, isPCons12[i+1], successivePerfect);
-                    setCostFromBool(home, successivePerfect, successiveCostArray[idx], p1->getSuccCost());
+            } else if(parts[v1]->getSpecies()==FOURTH_SPECIES || parts[v2]->getSpecies()==FOURTH_SPECIES){
+                for(int i = 0; i < hIntervals12.size()-1; i++){
+                    BoolVar firstNotFifth = BoolVar(home, 0, 1);
+                    BoolVar secondNotFifth = BoolVar(home, 0, 1);
+                    BoolVar notSuccessiveFifths = BoolVar(home, 0, 1);
+
+                    BoolVar succPCons = BoolVar(home, 0, 1);
+                    BoolVar succPConsNotFifths = BoolVar(home, 0, 1);
+
+                    rel(home, hIntervals12[i], IRT_NQ, 7, Reify(firstNotFifth));
+                    rel(home, hIntervals12[i+1], IRT_NQ, 7, Reify(secondNotFifth));
+                    rel(home, firstNotFifth, BOT_OR, secondNotFifth, notSuccessiveFifths);
+
+                    rel(home, isPCons12[i], BOT_AND, isPCons12[i+1], succPCons);
+                    rel(home, succPCons, BOT_AND, notSuccessiveFifths, succPConsNotFifths);
+                    rel(home, (succPConsNotFifths==1) >> (successiveCostArray[idx]==parts[v1]->getSuccCostAt(i)));
+                    rel(home, (succPConsNotFifths==0) >> (successiveCostArray[idx]==0));
                     idx++;
                 }
             }
@@ -779,124 +675,13 @@ void P7_noSuccessiveAscendingSixths(Home home, vector<Part*> parts){
     }
 }
 
-void noSuccessiveSamePerfectIntervalOnIndices(Home home, Part* p1, Part* p2, vector<int>& indices) {
-    int nIndices = indices.size();
-    bool p1Fourth = p1->getSpecies() == FOURTH_SPECIES;
-    bool p2Fourth = p2->getSpecies() == FOURTH_SPECIES;
-    if (p1Fourth || p2Fourth) { return; } // Authorized with 4th species (Bitsch, rule 43, p.25)
-
-    IntVarArray notes1 = p1->getNotes();
-    IntVarArray notes2 = p2->getNotes();
-    if (notes1.size() != notes2.size()){ // p1 is cantus firmus
-        notes1 = expandCantusNotes(home, notes1);
-    }
-
-    // Building intervals array
-    IntVarArray hIntervals12(home, nIndices, 0, MAJOR_SEVENTH);
-    for (int i = 0; i < nIndices-1; i++) {
-        int idx = indices[i];
-        rel(home, hIntervals12[i] == (abs(notes1[idx] - notes2[idx]) % 12));
-    }
-    rel(home, hIntervals12[nIndices-1] == (abs(notes1[indices.back()] - notes2[indices.back()]) % 12)); // Final note
-
-    // Constraint (Bitsch, rule 42, p.24)
-    for (int i = 0; i < hIntervals12.size()-1; i++) {
-        rel(home, expr(home, hIntervals12[i] == UNISSON), BOT_AND, expr(home, hIntervals12[i+1] == UNISSON), 0); // No successive unisson
-        rel(home, expr(home, hIntervals12[i] == PERFECT_FIFTH), BOT_AND, expr(home, hIntervals12[i+1] == PERFECT_FIFTH), 0); // No successive fifth
-        rel(home, expr(home, hIntervals12[i] == TRITONE), BOT_AND, expr(home, hIntervals12[i+1] == PERFECT_FIFTH), 0); // No  fifth --> perfect fifth
-    }
-}
-
-void P8_noSuccessiveSamePerfectInterval(Home home, vector<Part*> parts) {
-    for (int v1 = 0; v1 < parts.size(); v1++) {
-        for (int v2 = v1 + 1; v2 < parts.size(); v2++) {
-            Part* p1 = parts[v1];
-            Part* p2 = parts[v2];
-
-            // ----- successive beats -----
-            vector<int> beatIndices = createRangeVector(0, 2*(p1->getNMeasures()-1), 2); // thesis + arsis
-            beatIndices.push_back(4*(p1->getNMeasures()-1)); // last thesis
-            noSuccessiveSamePerfectIntervalOnIndices(home, p1, p2, beatIndices);
-
-            // ----- successive notes -----
-            bool p1Third = p1->getSpecies() == THIRD_SPECIES;
-            bool p2Third = p2->getSpecies() == THIRD_SPECIES;
-            if (p1Third || p2Third){ // If no 3d species, already taken care of in arsis or thesis
-                const int nMeasures = p1->getNMeasures();
-                vector<int> noteIndices = createRangeVector(0, nMeasures*4-3, 1);
-                noSuccessiveSamePerfectIntervalOnIndices(home, p1, p2, noteIndices);
-            }
-        }
-    }
-}
-
-void noSimultaneousRepetitionOnIndices(Home home, Part* p1, Part* p2, const vector<int>& indices) {
-    // P9 forbids two voices from BOTH repeating their note across the same step (a fully
-    // static instant). The check compares note VALUES at successive beats, so it cannot tell a
-    // re-articulated note (a real repetition) from a merely SUSTAINED one (a held cantus-firmus
-    // whole note, or a tie across the bar). Species that rely on ties trip this false positive:
-    //   - 4th species: the suspension tie is mandatory (arsis_m == downbeat_{m+1}); against the
-    //     held CF the AND-of-repetitions is true on every measure -> infeasible everywhere.
-    //   - 5th species: ties are optional, so it stays feasible, but P9 effectively bans every
-    //     suspension against the (always held) CF, suppressing legitimate florid writing.
-    // Both must therefore be exempt. (Authors already noted "If 4th species, doesn't really have
-    // sense"; the same reasoning extends to the suspensions of 5th species.)
-    Species s1 = (Species)p1->getSpecies(), s2 = (Species)p2->getSpecies();
-    if (s1 == FOURTH_SPECIES || s2 == FOURTH_SPECIES ||
-        s1 == FIFTH_SPECIES  || s2 == FIFTH_SPECIES) return;
-
-    IntVarArray notes1 = p1->getNotes();
-    IntVarArray notes2 = p2->getNotes();
-
-    if (notes1.size() != notes2.size()){ // p1 is cantus firmus
-        notes1 = expandCantusNotes(home, notes1);
-    }
-
-    for (int i = 0; i < (int)indices.size()-1; i++) {
-        const int t1 = indices[i];
-        const int t2 = indices[i+1];
-
-        BoolVar p1Repeats(home, 0, 1);
-        BoolVar p2Repeats(home, 0, 1);
-
-        rel(home, notes1[t1], IRT_EQ, notes1[t2], Reify(p1Repeats));
-        rel(home, notes2[t1], IRT_EQ, notes2[t2], Reify(p2Repeats));
-
-        rel(home, p1Repeats, BOT_AND, p2Repeats, 0); // Hard forbid
-    }
-}
-
-void P9_noSimultaneousRepetition(Home home, vector<Part*> parts) {
-    int count = 0;
-    for (int v1 = 0; v1 < parts.size(); v1++) {
-        for (int v2 = v1 + 1; v2 < parts.size(); v2++) {
-            count++;
-            Part* p1 = parts[v1];
-            Part* p2 = parts[v2];
-
-            // ----- successive beats -----
-            vector<int> thesisIndices = createRangeVector(0, p1->getNMeasures(), 4);
-            noSimultaneousRepetitionOnIndices(home, p1, p2, thesisIndices);
-
-            // Checking again with arsis beats
-            vector<int> beatIndices = createRangeVector(0, 2*(p1->getNMeasures()-1), 2); // thesis + arsis
-            beatIndices.push_back(4*(p1->getNMeasures()-1)); // last thesis
-            noSimultaneousRepetitionOnIndices(home, p1, p2, beatIndices);
-
-            // ----- successive notes -----
-            bool p1Third = p1->getSpecies() == THIRD_SPECIES;
-            bool p2Third = p2->getSpecies() == THIRD_SPECIES;
-            bool p1Fourth = p1->getSpecies() == FOURTH_SPECIES;
-            bool p2Fourth = p2->getSpecies() == FOURTH_SPECIES;
-
-            // If no 3d species, already taken care of in arsis or thesis
-            // If 4th species, doesn't really have sense
-            if ((p1Third || p2Third) && !p1Fourth && !p2Fourth){ 
-                const int nMeasures = p1->getNMeasures();
-                vector<int> noteIndices = createRangeVector(0, nMeasures*4-3, 1);
-                noSimultaneousRepetitionOnIndices(home, p1, p2, noteIndices);
-            }
-        }
+void P1_1_3v_noDirectMotionFromPerfectConsonance(Home home, Part* part){
+    for(int j = 0; j < part->getFirstSpeciesMotions().size()-1; j++){
+        //set a cost when it is reached through direct motion, it is 0 when not
+        rel(home, (part->getFirstSpeciesMotions()[j]==2&&(part->getFirstSpeciesHIntervals()[j+1]==0||part->getFirstSpeciesHIntervals()[j+1]==7))>>
+            (part->getDirectCostArray()[j]==part->getDirectMoveCostAt(j)));
+        rel(home, (part->getFirstSpeciesMotions()[j]!=2||(part->getFirstSpeciesHIntervals()[j+1]!=0&&part->getFirstSpeciesHIntervals()[j+1]!=7))>>
+            (part->getDirectCostArray()[j]==0));
     }
 }
 

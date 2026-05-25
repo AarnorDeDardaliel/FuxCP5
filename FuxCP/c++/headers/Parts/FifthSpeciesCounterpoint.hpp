@@ -7,7 +7,7 @@
 
 #include "Part.hpp"
 #include "CantusFirmus.hpp"
-#include "constraints.hpp"
+#include "../constraints.hpp"
 
 class FifthSpeciesCounterpoint : public Part{
 

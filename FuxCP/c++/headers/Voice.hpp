@@ -5,7 +5,7 @@
 #ifndef FUXCP_BASE_VOICE_HPP
 #define FUXCP_BASE_VOICE_HPP
 
-#include "../Utilities.hpp"
+#include "Utilities.hpp"
 
 #include "gecode/kernel.hh"
 #include "gecode/int.hh"

@@ -28,15 +28,16 @@ TwoVoiceCounterpoint::TwoVoiceCounterpoint(vector<int> cf, Species sp, int v_typ
     counterpoint_2 = nullptr;
     counterpoint_3 = nullptr;
     
-    vector<Part*> parts = {cantusFirmus, counterpoint_1};
-
     // G6 : no chromatic melodies (works for 1st, 2nd and 3rd species)
     if (activeConstraints[V2_G6]) {
         G6_noChromaticMelodies(*this, counterpoint_1, species);
     }
 
     // M2_1 : variety cost (penalize repeated notes in 2-voice mode)
-    M2_1_varietyCost(*this, parts);
+    {
+        vector<Part*> parts = {cantusFirmus, counterpoint_1};
+        M2_1_varietyCost(*this, parts);
+    }
 
     // 1.H4 (G9)
     if (activeConstraints[V2_G9]) {
@@ -77,16 +78,6 @@ TwoVoiceCounterpoint::TwoVoiceCounterpoint(vector<int> cf, Species sp, int v_typ
         // Implication constraint
         rel(*this, is3H4active >> 
             (expr(*this, abs(cantusFirmus->getFirstHInterval()[cantusFirmus->getFirstHInterval().size()-2])) == MINOR_THIRD));
-    }
-
-    // P8 from Karim : successive fifths and successive octave / unissons are forbidden
-    if (activeConstraints[V2_1P8]) {
-        P8_noSuccessiveSamePerfectInterval(*this, parts);
-    }
-
-    // P9 from Karim : simultaneous repetitions between two voices are forbidden
-    if (activeConstraints[V2_1P9]) {
-        P9_noSimultaneousRepetition(*this, parts);
     }
 
     setStrata();

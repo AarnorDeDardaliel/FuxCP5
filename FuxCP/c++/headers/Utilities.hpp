@@ -339,8 +339,6 @@ enum constraints{
     V2_1H2,
     V2_1H3,
     V2_1H5,
-    V2_1P8,
-    V2_1P9,
     V3_G6,
     V3_1H4,
     V3_1H5,
@@ -349,8 +347,6 @@ enum constraints{
     V3_1P4,
     V3_1P6,
     V3_1P7,
-    V3_1P8,
-    V3_1P9,
     V3_2M2,
     V3_5R9,
     V4_G6,
@@ -360,8 +356,6 @@ enum constraints{
     V4_1P4,
     V4_1P6,
     V4_1P7,
-    V4_1P8,
-    V4_1P9,
     V4_2M2,
     V4_5R9,
     V4_U2,
@@ -447,7 +441,7 @@ enum constraints{
 const int consSize = static_cast<int>(SP5_4V_2+1); // Number of constraints
 extern vector<bool> activeConstraints;
 extern vector<bool> softConstraints;
-
+     
 enum toCombineConstraints{
     H1_1,
 };
@@ -455,9 +449,9 @@ enum toCombineConstraints{
 const vector<string> constraintNames = {
     "CF_1H1", "CF_1H2_2V", "CF_1H3_2V", "CF_1H7_2V", "CF_1P1", "CF_1H7_3V", "CF_1P3",
     "STRATUM_UPPER_1H3", "STRATUM_UPPER_1H10", "STRATUM_UPPER_1H12", "STRATUM_1H3", "STRATUM_1H12", 
-    "V2_G6", "V2_G9", "V2_1H2", "V2_1H3", "V2_1H5", "V2_1P8", "V2_1P9",
-    "V3_G6", "V3_1H4", "V3_1H5", "V3_1H8", "V3_1M4", "V3_1P4", "V3_1P6", "V3_1P7", "V3_1P8", "V3_1P9", "V3_2M2", "V3_5R9",
-    "V4_G6", "V4_1H4", "V4_1H8", "V4_1M4", "V4_1P4", "V4_1P6", "V4_1P7", "V4_1P8", "V4_1P9", "V4_2M2",  "V4_5R9","V4_U2",
+    "V2_G6", "V2_G9", "V2_1H2", "V2_1H3", "V2_1H5",
+    "V3_G6", "V3_1H4", "V3_1H5", "V3_1H8", "V3_1M4", "V3_1P4", "V3_1P6", "V3_1P7", "V3_2M2", "V3_5R9",
+    "V4_G6", "V4_1H4", "V4_1H8", "V4_1M4", "V4_1P4", "V4_1P6", "V4_1P7", "V4_2M2",  "V4_5R9","V4_U2",
     "SP1_G4", "SP1_G7", "SP1_1H1", "SP1_1H6", "SP1_1H7_2V", "SP1_1M2_2V", "SP1_1P1_2V", "SP1_1P3_2V", "SP1_1H7_3V", "SP1_1M2_3V", "SP1_1P1_3V", "SP1_1P3_3V", "SP1_1M2_4V", "SP1_1P1_4V", "SP1_1P3_4V",
     "SP2_2H2", "SP2_2M1", "SP2_2P3", "SP2_2H3_2V", "SP2_2M2_2V", "SP2_2P1_2V", "SP2_2H3_3V", "SP2_1P1_3V", "SP2_2H3_4V", "SP2_1P1_4V",
     "SP3_3H1", "SP3_3H2", "SP3_3H3", "SP3_3M1", "SP3_1P3", "SP3_U1", "SP3_U2", "SP3_U3", "SP3_3H4_2V", "SP3_1H7_3V", "SP3_3H6_3V", "SP3_1P1_3V", "SP3_1H7_4V", "SP3_3H6_4V", "SP3_1P1_4V",
@@ -628,20 +622,6 @@ string cleanIntVarArray_to_string(IntVarArray vars);
 string intVarArgs_to_string(IntVarArgs args);
 
 /**
- * Returns the Species object corresponding to an integer
- * @param sp integer representing the species (1 for 1sp, 2 for 2sp, ...)
- * @return a Species object (basically an int too)
- */
-Species int_to_species(int sp);
-
-/**
- * Returns the name of the note given through MIDI value 
- * @param note the MIDI value of the note
- * @return its name
- */
-string midi_to_french(int note);
-
-/**
  * Returns the name of a note based on its MIDI value
  * @param note an integer
  */
@@ -668,56 +648,5 @@ void write_to_log_file(const char *message, const string& filename);
 
 void writeToLogFile(const char* message);
 
-
-/* ================================================
- *         CONSTRAINT HELPERS
- * ================================================
- */
-
-IntVarArray expandCantusNotes(Home home, IntVarArray cantus);
-vector<int> createRangeVector(int from, int to, int multiplier);
-
-/* ================================================
- *         DYNAMIC BRANCHING SELECTORS
- * ================================================
- * Exposed for SolverBench / branching campaign skill: the solutionArray
- * branching heuristic in TwoVoiceCounterpoint reads these globals at
- * construction time, so a benchmark can swap them between runs without
- * recompiling. Defaults reproduce the production setting
- * (AFC_MAX + VAL_RND(1U) + seed 1) so any other binary keeps its current
- * behaviour as long as it does not touch these.
- */
-
-enum BranchVarSel {
-    BR_VAR_SIZE_MIN = 0,
-    BR_VAR_SIZE_MAX,
-    BR_VAR_DEGREE_MAX,
-    BR_VAR_AFC_MAX,
-    BR_VAR_ACTION_MAX,
-    BR_VAR_NONE
-};
-
-enum BranchValSel {
-    BR_VAL_MIN = 0,
-    BR_VAL_MAX,
-    BR_VAL_MED,
-    BR_VAL_RND,
-    BR_VAL_SPLIT_MIN,
-    BR_VAL_SPLIT_MAX
-};
-
-extern BranchVarSel g_solution_var_sel;
-extern BranchValSel g_solution_val_sel;
-extern unsigned int g_solution_val_rnd_seed;
-
-const char* branch_var_sel_name(BranchVarSel s);
-const char* branch_val_sel_name(BranchValSel s);
-BranchVarSel parse_branch_var_sel(const string& s);
-BranchValSel parse_branch_val_sel(const string& s);
-
-// Applies branch(home, vars, ...) using the current global selectors.
-// The helper is intentionally limited to the solutionArray case so that
-// touching the globals never changes the other branching layers.
-void branch_solution_array_dynamic(Home home, const IntVarArgs& vars);
 
 #endif

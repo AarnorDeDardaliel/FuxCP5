@@ -2,7 +2,7 @@
 // Created by Luc Cleenewerk and Diego de Patoul. 
 //
 
-#include "../../headers/Parts/Voice.hpp"
+#include "../headers/Voice.hpp"
 
 Voice::Voice(Home home, int nMes, int lb, int ub){
     nMeasures = nMes; 

@@ -8,7 +8,7 @@
 
 class Part;
 
-#include "Part.hpp"
+#include "Parts/Part.hpp"
 
 /* ================================================
  *              GENERAL CONSTRAINTS
@@ -55,31 +55,6 @@ void H2_1_startWithPerfectConsonance(Home home, Part* part);
 void H2_2_arsisHarmoniesCannotBeDisonnant(Home home, Part* part);
 
 void H2_3_disonanceImpliesDiminution(Home home, Part* part);
-
-/**
- * Extension of H2_2 for compositions with 3 or more voices.
- * The base H2_2 only checks the arsis against the lowest stratum, so dissonances
- * against upper voices (e.g. the cantus firmus when it is not the lowest) are not
- * caught. This variant checks the arsis pitch-class interval of a 2nd-species voice
- * against every other voice and ties the dissonance escape to isDiminution[i].
- */
-void H2_2_arsisHarmoniesCannotBeDisonnant_multiVoice(Home home, Part* secondSpPart, vector<Part*> otherVoices);
-
-/**
- * Extension of H2_3 for 3+ voices, 3rd species. Checks all three weak beats (+1/+2/+3)
- * of each measure against every other voice's strong beat. A weak beat may be dissonant
- * only if it is a genuine passing tone (approached AND left by step).
- */
-void H2_3_disonanceImpliesDiminution_multiVoice(Home home, Part* thirdSpPart, vector<Part*> otherVoices);
-
-/**
- * MANDATORY tonal rule (Bitsch §59). A disjunct weak-beat note of a 2nd/3rd-species voice
- * must belong to the harmony of its half-measure (pitch classes of the voices' structural
- * notes). One harmony per measure normally; a 4th-species voice resolves on the 3rd beat
- * and yields a second harmony for the 2nd half (beats +2/+3). Passing tones stay exempt;
- * the penultimate measure (cadence) is exempt.
- */
-void chordMembershipOnDisjunctWeakBeats(Home home, Part* sp, vector<Part*> allVoices);
 
 /**
  * 1.H3 : The last chord must be a perfect consonance. This applies to 2 voices, the 3 and 4 voice version is applied in the stratum constructors
@@ -169,11 +144,7 @@ void P3_1_noBattuta(Home home, Part* part);
 
 void P3_2_noBattuta(Home home, Part* part);
 
-void P4_successiveCost(Home home, vector<Part*> parts, IntVarArray successiveCostArray);
-
-void P8_noSuccessiveSamePerfectInterval(Home home, std::vector<Part*> parts);
-
-void P9_noSimultaneousRepetition(Home home, std::vector<Part*> parts);
+void P4_successiveCost(Home home, vector<Part*> parts, int scc_cz, IntVarArray successiveCostArray, vector<Species> species);
 
 void P6_3v_noMoveInSameDirection(Home home, vector<Part*> parts);
 
