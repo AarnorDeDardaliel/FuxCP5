@@ -76,10 +76,9 @@ FourVoiceCounterpoint::FourVoiceCounterpoint(vector<int> cf, vector<Species> sp,
     
     //P4 avoid successive perfect consonances
     if (activeConstraints[V4_1P4]) {
-        P4_successiveCost(*this, parts, scc_cz, successiveCostArray, species);
+        P4_successiveCost(*this, parts, successiveCostArray);
     }
-    
-    
+
     //P6 : no move in same direction
     if (activeConstraints[V4_1P6]) {
         P6_4v_noMoveInSameDirection(*this, parts);
@@ -93,12 +92,36 @@ FourVoiceCounterpoint::FourVoiceCounterpoint(vector<int> cf, vector<Species> sp,
         P7_noSuccessiveAscendingSixths(*this, parts);
     }
 
+    // P8 from Karim : successive fifths and successive octave / unissons are forbidden
+    if (activeConstraints[V4_1P8]) {
+        P8_noSuccessiveSamePerfectInterval(*this, parts);
+    }
+
+    // P9 from Karim : simultaneous repetitions between two voices are forbidden
+    if (activeConstraints[V4_1P9]) {
+        P9_noSimultaneousRepetition(*this, parts);
+    }
+
     //2.M2, have to write it here since it has a weird interaction with the third species
     if (activeConstraints[V4_2M2]) {
         if (softConstraints[V4_2M2]) {
             M2_2_3v_melodicIntervalsNotExceedMinorSixth_soft(*this, parts, containsThirdSpecies);
         } else {
             M2_2_3v_melodicIntervalsNotExceedMinorSixth(*this, parts, containsThirdSpecies);
+        }
+    }
+
+    // H2 extended (Fux multi-voice rule): a disjunct weak beat must be consonant with
+    // every other voice's strong beat, not only the lowest stratum. See constraints.cpp.
+    for (Part* p : parts) {
+        if (p->getSpecies() == SECOND_SPECIES && activeConstraints[SP2_2H2]) {
+            H2_2_arsisHarmoniesCannotBeDisonnant_multiVoice(*this, p, parts);
+        } else if (p->getSpecies() == THIRD_SPECIES && activeConstraints[SP3_3H2]) {
+            H2_3_disonanceImpliesDiminution_multiVoice(*this, p, parts);
+        }
+        // Tonal rule (mandatory): disjunct weak beat must belong to the measure harmony.
+        if (p->getSpecies() == SECOND_SPECIES || p->getSpecies() == THIRD_SPECIES) {
+            chordMembershipOnDisjunctWeakBeats(*this, p, parts);
         }
     }
 
@@ -187,9 +210,12 @@ FourVoiceCounterpoint::FourVoiceCounterpoint(vector<int> cf, vector<Species> sp,
             return a.first < b.first;
         });
     
-    // Branch on each voice in order of complexity
+    // Branch on each voice in order of complexity.
+    // Dispatched through globals (g_solution_var_sel / g_solution_val_sel) so
+    // SolverBench can swap heuristics without recompiling. Defaults are
+    // AFC_MAX + VAL_RND, matching the 2-voice production branching.
     for(const auto& voice : voicesBySize) {
-        branch(*this, voice.second->getBranchingNotes(), INT_VAR_SIZE_MIN(), INT_VAL_MIN());
+        branch_solution_array_dynamic(*this, voice.second->getBranchingNotes());
     }
     
     branch(*this, cost(), INT_VAR_NONE(), INT_VAL_MAX()); // Solves all "ValOfUnassignedVar" problems + accelerate every test

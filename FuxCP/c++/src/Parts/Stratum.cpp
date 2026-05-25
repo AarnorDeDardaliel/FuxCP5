@@ -2,7 +2,7 @@
 // Created by Luc Cleenewerk and Diego de Patoul. 
 //
 
-#include "../headers/Stratum.hpp"
+#include "../../headers/Parts/Stratum.hpp"
 
 Stratum::Stratum(Home home, int nMes, int lb, int ub) : Voice(home, nMes, lb, ub){
     //notes = IntVarArray(home, nMes*4-3, 0, 127);

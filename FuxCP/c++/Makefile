@@ -40,7 +40,7 @@ LIBS_MINIMAL = -lgecodekernel -lgecodesearch -lgecodeint \
 
 # === SOURCES PARTAGÉES ===
 SHARED_SOURCES = \
-	src/Utilities.cpp src/Voice.cpp src/Stratum.cpp src/CounterpointProblems/CounterpointUtils.cpp \
+	src/Utilities.cpp src/Parts/Voice.cpp src/Parts/Stratum.cpp src/CounterpointProblems/CounterpointUtils.cpp \
 	src/ConfigLoader.cpp \
 	src/CounterpointProblems/CounterpointProblem.cpp \
 	src/Parts/Part.cpp \
@@ -53,11 +53,8 @@ SHARED_SOURCES = \
 	src/CounterpointProblems/TwoVoiceCounterpoint.cpp \
 	src/CounterpointProblems/ThreeVoiceCounterpoint.cpp \
 	src/CounterpointProblems/FourVoiceCounterpoint.cpp \
-	src/constraints.cpp \
-	src/Midi.cpp
-
-TEST_SOURCES = \
-	src/Tests/fuxTest.cpp src/Tests/figureTests.cpp
+	src/Parts/constraints.cpp \
+	src/Midi.cpp src/Generations.cpp src/GenerationsAPI.cpp
 
 # =============================================================
 # CIBLE PAR DÉFAUT
@@ -88,11 +85,9 @@ $(TARGET): $(OBJS)
 # GÉNÉRATEUR DE CONTREPOINTS (binaire principal)
 # =============================================================
 
-GENERATE_COUNTERPOINT_SOURCES = src/Generations.cpp $(SHARED_SOURCES)
-
 compile_generate_counterpoint:
 	@mkdir -p $(COMPILED_DIR)
-	$(CXX) $(CXXFLAGS_DEBUG) $(GENERATE_COUNTERPOINT_SOURCES) \
+	$(CXX) $(CXXFLAGS_DEBUG) src/main.cpp $(SHARED_SOURCES) \
 	    -o $(COMPILED_DIR)/GenerateCounterpoint $(LIBS_MINIMAL)
 
 # --- Génération d'un contrepoint précis ---
@@ -115,16 +110,18 @@ compile_experiments:
 
 experiments: compile_experiments
 	$(COMPILED_DIR)/Experiments
-	
 # =============================================================
 # TESTING SUITES
 # =============================================================
 
 compile_for_debug:
 	@mkdir -p $(COMPILED_DIR)
-	$(CXX) $(CXXFLAGS_DEBUG) src/Tests/main.cpp $(TEST_SOURCES) $(SHARED_SOURCES) -o $(COMPILED_DIR)/Main $(LIBS_MINIMAL)
+	$(CXX) $(CXXFLAGS_DEBUG) src/Tests/main.cpp src/Tests/fuxTest.cpp src/Tests/figureTests.cpp $(SHARED_SOURCES) -o $(COMPILED_DIR)/Main $(LIBS_MINIMAL)
 
 test: compile_for_debug
+	$(COMPILED_DIR)/Main $(name)
+
+test_all: compile_for_debug
 	$(COMPILED_DIR)/Main all
 
 # =============================================================

@@ -244,30 +244,29 @@ public:
 
     void test_configuration();
 
-    void test_bryce_2v_1sp();
-    void test_bryce_2v_2sp();
-    void test_bryce_2v_3sp();
-    void test_bryce_2v_4sp();
-    void test_bryce_3v_1sp();
-    void test_bryce_3v_2sp();
-    void test_bryce_3v_2sp_2sp();
-    void test_bryce_3v_3sp();
-    void test_bryce_3v_3sp_3sp();
-    void test_bryce_3v_4sp();
-    void test_bryce_4v_1sp();
-    void test_bryce_4v_2sp();
-    void test_bryce_4v_2sp_2sp_2sp();
+    void test_gen_2v_1sp();
+    void test_gen_2v_2sp();
+    void test_gen_2v_3sp();
+    void test_gen_2v_4sp();
+    void test_gen_3v_1sp();
+    void test_gen_3v_2sp();
+    void test_gen_3v_2sp_2sp();
+    void test_gen_3v_3sp();
+    void test_gen_3v_3sp_3sp();
+    void test_gen_3v_4sp();
+    void test_gen_4v_1sp();
+    void test_gen_4v_2sp();
+    void test_gen_4v_2sp_2sp_2sp();
     void test_sacha_4v_3sp();
-    void test_bryce_4v_3sp();
-    void test_bryce_4v_4sp();
-    
-    void test_bryce();
-    void test_bryce_2();
-    void test_bryce_constrains_check(Species species, int n_voices, vector<int> v_cases, vector<int> v_cases_1sp);
+    void test_gen_4v_3sp();
+    void test_gen_4v_4sp();
 
-    void test_bryce_classic();
-    void test_bryce_fullsp();
-    void test_bryce_all();
+    void test_gen_custom();
+    void test_gen_constrains_check(Species species, int n_voices, vector<int> v_cases, vector<int> v_cases_1sp);
+
+    void test_gen_classic();
+    void test_gen_multi();
+    void test_gen_all();
     void test_sacha();
 };
 

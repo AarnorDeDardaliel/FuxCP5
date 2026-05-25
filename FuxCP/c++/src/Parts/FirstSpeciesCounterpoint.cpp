@@ -23,6 +23,7 @@ FirstSpeciesCounterpoint::FirstSpeciesCounterpoint(Home home, int nMes, vector<i
     */
     if(borrowMode==1){
         domain = cp_range;
+        cout <<"NOOOOOOOOOO, DON'T USE BORROW MOOOOOODE YOU FOOOOOOOL" << endl;
     } else {
         domain = vector_intersection(cp_range, vector_union(scale, borrowed_scale));
     }

@@ -58,7 +58,7 @@ protected:
 
     IntVar globalCost;
     ObjectiveMode objectiveMode = OBJECTIVE_LEX;
-    IntVar ponderedGlobalCost;
+    IntVar objectiveCostSum;
     // vector<int> species;        /// the species of the counterpoint to generate
 
     IntVarArray combinedCosts;

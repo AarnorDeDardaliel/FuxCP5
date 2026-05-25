@@ -40,7 +40,7 @@ CounterpointProblem::CounterpointProblem(vector<int> cf, int v_type, vector<int>
     }
 
     globalCost = IntVar(*this, 0, 2000000);             //contains the global cost
-    ponderedGlobalCost = IntVar(*this, 0, 2000000);     //contains the pondered global cost
+    objectiveCostSum = IntVar(*this, 0, 2000000);          //contains the costs sum to use with the objectiveMode options
 
     writeToLogFile("counterpointproblem constructor"); 
 
@@ -128,7 +128,7 @@ CounterpointProblem::CounterpointProblem(CounterpointProblem& s) : IntLexMinimiz
     }
     globalCost.update(*this, s.globalCost);
     objectiveMode = s.objectiveMode;
-    ponderedGlobalCost.update(*this, s.ponderedGlobalCost);
+    objectiveCostSum.update(*this, s.objectiveCostSum);
 
     hasRelaxation = s.hasRelaxation;
     problemRelaxationCosts.update(*this, s.problemRelaxationCosts);
