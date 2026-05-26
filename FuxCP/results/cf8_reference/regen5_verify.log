@@ -1,0 +1,20 @@
+=== regen+audit 5e 2026-05-26 01:37:31 (timeout 180000ms, patch SP5_H6 + dump) ===
+[01:40:31] 2v 5e vt1 -> NO_OUTPUT
+[01:40:31] 2v 5e vt2 -> NO_OUTPUT
+[01:40:31] 3v 5e vt1-1 -> NO_OUTPUT
+[01:40:31] 3v 5e vt2-1 -> NO_OUTPUT
+[01:40:31] 3v 5e vt2-2 -> NO_OUTPUT
+[01:40:31] 2v 5e vt3     -> TIMEOUT_MAX  score=2331.0   third=14  phantom=19  WEAK_ill=0 DOWN_ill=0
+[01:40:31] 3v 5e vt1-2   -> TIMEOUT_MAX  score=13816.0  third=10  phantom=23  WEAK_ill=0 DOWN_ill=0
+[01:40:31] 3v 5e vt1-4   -> TIMEOUT_MAX  score=17956.0  third=10  phantom=23  WEAK_ill=0 DOWN_ill=0
+[01:40:31] 3v 5e vt1-3   -> TIMEOUT_MAX  score=18955.0  third=10  phantom=23  WEAK_ill=0 DOWN_ill=0
+[01:40:31] 2v 5e vt4     -> TIMEOUT_MAX  score=10107.0  third=14  phantom=19  WEAK_ill=0 DOWN_ill=0
+[01:43:31] 3v 5e vt3-1 -> NO_OUTPUT
+[01:43:31] 3v 5e vt3-2 -> NO_OUTPUT
+[01:43:31] 3v 5e vt2-3   -> TIMEOUT_MAX  score=22681.0  third=10  phantom=23  WEAK_ill=0 DOWN_ill=0
+[01:43:31] 3v 5e vt2-4   -> TIMEOUT_MAX  score=23919.0  third=10  phantom=23  WEAK_ill=0 DOWN_ill=0
+[01:43:31] 3v 5e vt3-3   -> TIMEOUT_MAX  score=47254.0  third=10  phantom=23  WEAK_ill=0 DOWN_ill=0
+[01:43:31] 3v 5e vt3-4   -> TIMEOUT_MAX  score=23568.0  third=10  phantom=23  WEAK_ill=0 DOWN_ill=0
+=== BILAN 5e (post-patch, audit sur cellules THIRD réelles) ===
+  configs 5e avec solution: 16 | SP5_H6 violations: 0 | H1 downbeat violations: 0
+FIN5
