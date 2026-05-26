@@ -1,0 +1,3 @@
+48 50 53 52 55 53 52 50 48
+Do3 Ré3 Fa3 Mi3 Sol3 Fa3 Mi3 Ré3 Do3
+direct_cf_Majeur (gamme indicative : Majeur)

@@ -1,0 +1,14 @@
+========================================
+  AUCUNE SOLUTION : 4voices_1_1_1_4_vtype_1_2_1
+========================================
+
+CF                : direct_cf_Majeur
+Preset         : bryce
+Nb voix        : 4
+Espèces        : 1 0 0 3
+Timeout (ms)   : 480000
+Stagnation (ms): 0
+Terminaison    : TIMEOUT_MAX
+Temps écoulé   : 480000.1 ms
+Nœuds          : 3896429
+Échecs         : 1948197
