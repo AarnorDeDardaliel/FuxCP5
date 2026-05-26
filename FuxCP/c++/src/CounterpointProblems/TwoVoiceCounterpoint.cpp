@@ -90,6 +90,22 @@ TwoVoiceCounterpoint::TwoVoiceCounterpoint(vector<int> cf, Species sp, int v_typ
         P9_noSimultaneousRepetition(*this, parts);
     }
 
+    // Tonal rule (mandatory): a disjunct weak beat must belong to the measure harmony.
+    // Previously applied only in 3v/4v; extending it to 2 voices also closes the gap
+    // where 3rd-species weak beats +1/+3 were left unchecked for consonance.
+    if (counterpoint_1->getSpecies() == SECOND_SPECIES || counterpoint_1->getSpecies() == THIRD_SPECIES) {
+        chordMembershipOnDisjunctWeakBeats(*this, counterpoint_1, parts);
+    }
+
+    // Consonance on the three weak beats of 2-voice 3rd species: reuse the proven multi-voice
+    // check. The in-species H2_3 only ties the central weak beat and reads a free
+    // getConsonance(), so disjunct dissonances (e.g. a leapt-to fourth fa/do) slipped onto
+    // beats +1/+3. This computes the interval from the notes vs the CF and forbids leaping
+    // into a dissonance or leaving it by leap.
+    if (counterpoint_1->getSpecies() == THIRD_SPECIES && activeConstraints[SP3_3H2]) {
+        H2_3_dissonanceImpliesDiminution_multiVoice(*this, counterpoint_1, parts);
+    }
+
     setStrata();
 
     unitedCosts = IntVarArray(*this, counterpoint_1->getCosts().size(), 0, 1000000);

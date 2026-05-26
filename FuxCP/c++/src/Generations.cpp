@@ -229,6 +229,12 @@ static void write_txt_report(const string& path, const GenerationCase& gc,
         for (int n : gr.full_solution) r << n << " ";
         r << "\n";
     }
+    // 5th-species rhythm: per cell, 1 = genuine 3rd-species attack (consonance governed by
+    // SP5_H6), 0 = phantom continuation/syncope cell (rendered as a quarter but not checked).
+    for (size_t i = 0; i < gr.rhythm_dump.size(); ++i) {
+        if (!gr.rhythm_dump[i].empty())
+            r << "--- isThirdSpeciesArray (CP" << (i + 1) << ") ---\n" << gr.rhythm_dump[i] << "\n";
+    }
     r.close();
 }
 
@@ -412,6 +418,10 @@ static GenerationResult run_bench(CounterpointProblem* problem, GenerationCase& 
         result.full_solution.reserve(sa.size());
         result.success = true;
         for (int i = 0; i < sa.size(); ++i) result.full_solution.push_back(sa[i].val());
+        // Capture each counterpoint's 3rd-species classification before freeing the space
+        // (empty for non-5th species). Order matches the voice order in the solution.
+        for (Part* cp : {best->getCounterpoint_1(), best->getCounterpoint_2(), best->getCounterpoint_3()})
+            if (cp) result.rhythm_dump.push_back(cp->getSolutionRhythm());
         delete best;
     } else { 
         result.success = false; 

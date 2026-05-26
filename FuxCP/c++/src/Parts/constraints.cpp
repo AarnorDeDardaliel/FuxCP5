@@ -121,10 +121,13 @@ void H2_2_arsisHarmoniesCannotBeDissonant(Home home, Part* part){
 }
 
 void H2_3_dissonanceImpliesDiminution(Home home, Part* part){
+    // NOTE: this in-species version only ties the central weak beat (+2) to the per-measure
+    // isDiminution flag, and reads getConsonance() which is NOT wired for 3rd species (so it
+    // is effectively a no-op on consonance). Full weak-beat consonance for 2-voice 3rd
+    // species is enforced separately by H2_3_..._multiVoice, called from TwoVoiceCounterpoint
+    // (it computes the interval from the notes, not from getConsonance). Kept for the gated
+    // SP3_3H2 path; harmless.
     for(int i = 0; i < part->getIsDiminution().size(); i++){
-        BoolVar band1 = BoolVar(home, 0, 1);
-        BoolVar band2 = BoolVar(home, 0, 1);
-
         rel(home, part->getConsonance()[(i*4)+2], BOT_OR, part->getIsDiminution()[i], 1);
     }
 }
@@ -194,20 +197,40 @@ static int resolutionBeatIndex(Part* voice, int i){
 
 void H2_4_chordMembershipOnDisjunctWeakBeats(Home home, Part* sp, vector<Part*> allVoices){
     // MANDATORY tonal rule (Bitsch §59). A disjunct weak-beat note must belong to the
-    // harmony of its half-measure (set of pitch classes of the structural notes of all
-    // voices). Normally a single harmony spans the whole measure (the downbeat pitch
-    // classes). A 4th-species voice doubles the harmonic rhythm: its suspension resolves
-    // on the 3rd beat, yielding a SECOND harmony for the 2nd half of the measure. So:
-    //   - weak beat +1 (1st half) is checked against the 1st-half harmony (downbeats);
-    //   - weak beats +2/+3 (2nd half) against the 2nd-half harmony (4th-species resolution).
-    // With no 4th-species voice the two harmonies coincide (single harmony per measure).
-    // Genuine passing tones (approached AND left by step) are exempt; the penultimate
-    // measure (cadence) is exempt.
+    // harmony of its half-measure. The harmony is the IMPLIED DIATONIC TRIAD: the
+    // structural (downbeat) notes of all voices outline a chord, and a disjunct weak beat
+    // must be one of that chord's tones — including a chord tone that is not literally
+    // sounding on a downbeat (e.g. the third of a {root, fifth} dyad). This generalises
+    // the older "must equal a sounding downbeat pitch class" rule, which wrongly rejected
+    // legitimate chord tones whenever the triad was incompletely voiced on the downbeat.
+    //
+    // Implementation: the key's diatonic triads are built by stacking thirds inside the
+    // scale (one triad per degree, tonic-independent). A weak beat is legal when, for at
+    // least one diatonic triad T, the weak-beat pitch class AND every structural pitch
+    // class lie in T. A fallback keeps the old "matches a sounding downbeat PC" test so
+    // the rule never gets stricter than before on chromatic/borrowed harmonies that fit
+    // no diatonic triad. Genuine passing tones (approached AND left by step) are exempt;
+    // the penultimate measure (cadence) is exempt.
+    //
+    // Harmony of the half-measure: weak beat +1 reads the 1st-half downbeats; weak beats
+    // +2/+3 read the 2nd-half harmony (a 4th-species voice resolves on its 3rd beat).
     int spc = sp->getSpecies();
     vector<int> offsets;
     if(spc == SECOND_SPECIES) offsets = {2};
     else if(spc == THIRD_SPECIES) offsets = {1,2,3};
     else return;
+
+    // Diatonic pitch classes of the key, then the diatonic triads (stacked thirds).
+    bool present[12] = {false};
+    for(int n : sp->getScale()) present[((n % 12) + 12) % 12] = true;
+    vector<int> scalePCs;
+    for(int p = 0; p < 12; p++) if(present[p]) scalePCs.push_back(p);
+    int N = (int)scalePCs.size();
+    vector<vector<int>> triads;
+    if(N >= 5){ // genuine diatonic scale (7 for major/minor)
+        for(int j = 0; j < N; j++)
+            triads.push_back({scalePCs[j], scalePCs[(j+2)%N], scalePCs[(j+4)%N]});
+    }
 
     int nM = sp->getNMeasures();
     for(int i = 0; i < nM-1; i++){
@@ -228,13 +251,40 @@ void H2_4_chordMembershipOnDisjunctWeakBeats(Home home, Part* sp, vector<Part*> 
             // weak beat +1 belongs to the 1st-half harmony, +2/+3 to the 2nd-half harmony
             bool firstHalf = (k == 1);
             IntVar pc = expr(home, sp->getNotes()[j] % 12);
+
+            // Fallback (old rule): weak-beat PC equals a sounding structural PC.
             BoolVarArgs inChord;
             for(Part* v : allVoices){
                 int idx = firstHalf ? strongBeatIndex(v, i) : resolutionBeatIndex(v, i);
                 inChord << expr(home, pc == (v->getNotes()[idx] % 12));
             }
             BoolVar anyInChord = expr(home, sum(inChord) >= 1);
-            rel(home, isPassing, BOT_OR, anyInChord, 1); // disjunct => must be in (half-)chord
+
+            // Implied-triad branch: some diatonic triad T contains the weak-beat PC and
+            // every structural PC of the half-measure.
+            BoolVarArgs triadOk;
+            for(vector<int>& T : triads){
+                IntArgs Targs(T);
+                IntSet Tset(Targs);
+                BoolVar weakInT(home, 0, 1);
+                dom(home, pc, Tset, Reify(weakInT));
+                BoolVarArgs structInT;
+                for(Part* v : allVoices){
+                    int idx = firstHalf ? strongBeatIndex(v, i) : resolutionBeatIndex(v, i);
+                    IntVar spc_pc = expr(home, v->getNotes()[idx] % 12);
+                    BoolVar inT(home, 0, 1);
+                    dom(home, spc_pc, Tset, Reify(inT));
+                    structInT << inT;
+                }
+                BoolVar allStructInT = expr(home, sum(structInT) == (int)structInT.size());
+                triadOk << expr(home, weakInT && allStructInT);
+            }
+            BoolVar inTriad = (triadOk.size() > 0)
+                ? expr(home, sum(triadOk) >= 1)
+                : BoolVar(home, 0, 0); // no diatonic triads -> rely on fallback only
+
+            // disjunct => belongs to the (implied) chord of its half-measure
+            rel(home, isPassing, BOT_OR, expr(home, anyInChord || inTriad), 1);
         }
     }
 }
@@ -952,13 +1002,13 @@ void M2_2_3v_twoConsecutiveNotesAreNotTheSame_soft(Home home, vector<Part*> part
 }
 
 void H2_3_dissonanceImpliesDiminution_soft(Home home, Part* part){
-    // Soft version: instead of hard BOT_OR = 1, count violations
+    // Soft version of the in-species H2_3 (central weak beat only). See the note on the hard
+    // version: full weak-beat consonance for 2-voice 3rd species is enforced by the
+    // multi-voice variant from TwoVoiceCounterpoint.
     int nConstraints = part->getIsDiminution().size();
     part->initRelaxationCostArray(home, nConstraints);
-    
+
     for(int i = 0; i < part->getIsDiminution().size(); i++){
-        // Original hard: consonance[(i*4)+2] OR isDiminution[i] == 1
-        // Soft: if neither consonant nor diminution => violation = 1
         BoolVar ok(home, 0, 1);
         rel(home, part->getConsonance()[(i*4)+2], BOT_OR, part->getIsDiminution()[i], ok);
         rel(home, (ok == 1) >> (part->getRelaxationCostArray()[i] == 0));

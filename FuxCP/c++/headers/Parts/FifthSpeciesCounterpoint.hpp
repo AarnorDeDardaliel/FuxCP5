@@ -75,6 +75,11 @@ public:
      */
     string to_string() const override;
 
+    // Dump of isThirdSpeciesArray as "0/1 0/1 ..." (one entry per flat-MIDI cell).
+    // Lets an external audit separate real 3rd-species attacks (governed by SP5_H6)
+    // from phantom continuation/syncope cells that are rendered as quarters anyway.
+    string getSolutionRhythm() const override;
+
     /// Copy constructor. This needs to copy all useful attributes and update variables. Must call the super copy constructor       NO LONGER NEEDED
     // FirstSpeciesCounterpoint(FirstSpeciesCounterpoint &s);
     /// Copy function

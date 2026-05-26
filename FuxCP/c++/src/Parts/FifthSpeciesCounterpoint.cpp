@@ -313,11 +313,28 @@ FifthSpeciesCounterpoint::FifthSpeciesCounterpoint(Home home, int nMes, vector<i
         }
     }
     
-    // 3.H2 any dissonant note implies it is surrounded by consonant notes (3rd species)
+    // 3.H2 a dissonant 3rd-species weak beat (florid in quarters) must be a genuine passing
+    // tone — approached AND left by step. The original rule had two gaps: it only tied the
+    // CENTRAL weak beat (+2), leaving +1 and +3 free to carry a leapt-to dissonance (e.g. a
+    // fourth fa/do reached by leap); and the `|| isThirdSpeciesArray[(i*4)+2]` term made every
+    // third-species central beat trivially exempt — the opposite of the intended gating.
+    // We now check the THREE weak beats (+1,+2,+3) of every third-species note, mirroring
+    // H2_3_..._multiVoice used by the pure 3rd species (which the 3+voice dispatch never calls
+    // for a 5th-species part). isConsonance[j] already excludes the fourth (dissonant vs the
+    // bass). The check is gated on isThirdSpeciesArray[j], so 1st/2nd/4th-species cells
+    // (whole/half/tied notes) are untouched. Like the multi-voice version it forbids leaving a
+    // dissonance by leap, i.e. the nota cambiata can only land on consonant beats (consistent
+    // trade-off across all species).
     if (activeConstraints[SP5_H6]) {
         for(int i = 0; i < isDiminution.size(); i++){
-            BoolVar band1 = BoolVar(home, 0, 1);
-            rel(home, expr(home, isConsonance[(i*4)+2] || isThirdSpeciesArray[(i*4)+2]), BOT_OR, isDiminution[i], 1);
+            for(int k = 1; k <= 3; k++){
+                int j = i*4 + k; // weak-beat instant
+                IntVar inMove  = expr(home, abs(notes[j]   - notes[j-1]));
+                IntVar outMove = expr(home, abs(notes[j+1] - notes[j]));
+                BoolVar isPassing = expr(home, inMove >= 1 && inMove <= 2 && outMove >= 1 && outMove <= 2);
+                // isThirdSpeciesArray[j] => (isConsonance[j] || isPassing)
+                rel(home, isThirdSpeciesArray[j], BOT_IMP, expr(home, isConsonance[j] || isPassing), 1);
+            }
         }
     }
 
@@ -778,6 +795,13 @@ string FifthSpeciesCounterpoint::to_string() const {
     text += "not Lowest array : " + boolVarArray_to_string(isNotLowest) + "\n";
     text += "Species array : " + intVarArray_to_string(speciesArray) + "\n";
     return text;
+}
+
+string FifthSpeciesCounterpoint::getSolutionRhythm() const {
+    // isThirdSpeciesArray is the only rhythm classification that survives cloning into the
+    // solution space (it is update()'d in the copy ctor); speciesArray is not, so we expose
+    // the 3rd-species flags directly. Each entry corresponds 1:1 to a flat-MIDI cell.
+    return boolVarArray_to_string(isThirdSpeciesArray);
 }
 
 // clone constructor

@@ -1,0 +1,46 @@
+# Branching campaign — showcase deep-dive on CF7 (id 7 "Do Reference Court").
+#
+# Goal: quantify the impact of the solutionArray branching couple (the four
+# documented var-sel/val-sel couples) on the 8 scenarios selected from the
+# CF7 showcase generation pool. Solver fixed to BAB. Objective = pond
+# (OBJECTIVE_PONDERED) so costs are directly comparable to the showcase pool.
+#
+# IMPORTANT: the solutionArray branching dispatch is now active in 2v, 3v AND
+# 4v (ThreeVoiceCounterpoint.cpp / FourVoiceCounterpoint.cpp call
+# branch_solution_array_dynamic). This was verified empirically: two opposed
+# couples diverge in cost/nodes/depth on a 3v case. The run_campaign.py
+# "multi-voice indistinguishable" warning is therefore obsolete here.
+#
+# Budgets: sp1 2v closes in <1s (60s ceiling, never hit). sp2 2v gets 9 min
+# so the optimality proof can close (afc+rnd closed it in 493s in the pool).
+# Everything else gets 4 min to compare the cost reached at equal budget.
+# stagnation_ms == timeout_ms => no early stop, full trajectory recorded.
+
+name: cf7_showcase_branching
+description: |
+  Impact of the solutionArray branching couple (4 documented couples) on the
+  8 showcase scenarios from the CF7 pool, solver BAB, objective pond.
+  2v sp1/sp2/sp3/sp5, 3v sp1-1/sp2-3/sp3-3, 4v sp1-1-1. 32 runs.
+
+scenarios:
+  - {cf: 7, voices: 2, species: [1],       v_types: [1],     preset: default, timeout_ms: 60000,  stagnation_ms: 60000,  obj_mode: pond}
+  - {cf: 7, voices: 2, species: [2],       v_types: [2],     preset: default, timeout_ms: 540000, stagnation_ms: 540000, obj_mode: pond}
+  - {cf: 7, voices: 2, species: [3],       v_types: [2],     preset: default, timeout_ms: 240000, stagnation_ms: 240000, obj_mode: pond}
+  - {cf: 7, voices: 2, species: [5],       v_types: [1],     preset: default, timeout_ms: 240000, stagnation_ms: 240000, obj_mode: pond}
+  - {cf: 7, voices: 3, species: [1, 1],    v_types: [4, 2],  preset: default, timeout_ms: 240000, stagnation_ms: 240000, obj_mode: pond}
+  - {cf: 7, voices: 3, species: [2, 3],    v_types: [0, 2],  preset: default, timeout_ms: 240000, stagnation_ms: 240000, obj_mode: pond}
+  - {cf: 7, voices: 3, species: [3, 3],    v_types: [0, 2],  preset: default, timeout_ms: 240000, stagnation_ms: 240000, obj_mode: pond}
+  - {cf: 7, voices: 4, species: [1, 1, 1], v_types: [0, 1, 2], preset: default, timeout_ms: 240000, stagnation_ms: 240000, obj_mode: pond}
+
+matrix:
+  solvers:
+    - bab
+  branching:
+    - {var_sel: size-min, val_sel: min, label: "original (fork)"}
+    - {var_sel: size-min, val_sel: rnd, label: "size + random"}
+    - {var_sel: afc-max,  val_sel: min, label: "afc + min (discarded)"}
+    - {var_sel: afc-max,  val_sel: rnd, label: "afc + random (production)"}
+  presets:
+    - default
+
+repeats: 1

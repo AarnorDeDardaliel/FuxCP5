@@ -75,6 +75,10 @@ struct GenerationResult {
 
     vector<int> full_solution;
     vector<pair<vector<int>, Species>> generated_voices;
+    // Per-counterpoint rhythm classification (only non-empty for 5th species):
+    // a "0/1" string of isThirdSpeciesArray, used to audit which flat-MIDI cells
+    // are genuine 3rd-species attacks vs phantom (continuation/syncope) cells.
+    vector<string> rhythm_dump;
 
     vector<tuple<int,double,double>> improvements;
     vector<tuple<int,double,double>> checkpoints;

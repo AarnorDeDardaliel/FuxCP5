@@ -128,6 +128,11 @@ class Part : public Voice {
 
         virtual string to_string() const override;
 
+        // Returns a "0/1" dump of the per-cell 3rd-species classification, or "" if the
+        // species has no such notion. Only 5th species overrides this (see header). Used
+        // by Generations to record which flat-MIDI cells are genuine 3rd-species attacks.
+        virtual string getSolutionRhythm() const { return ""; }
+
         virtual IntVarArray getBranchingNotes();
 
         virtual IntVarArray getFirstHInterval();
@@ -195,6 +200,10 @@ class Part : public Voice {
         vector<int> getOffDomain();
 
         vector<int> getDomain();
+
+        /// Diatonic scale of the key (all MIDI notes of the detected scale). Used by
+        /// chordMembershipOnDisjunctWeakBeats to build the implied diatonic triads.
+        vector<int> getScale() { return scale; }
 
         IntVarArray getOffCostArray();
 
