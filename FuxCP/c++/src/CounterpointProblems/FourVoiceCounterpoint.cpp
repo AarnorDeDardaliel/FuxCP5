@@ -99,23 +99,23 @@ FourVoiceCounterpoint::FourVoiceCounterpoint(vector<int> cf, vector<Species> sp,
     //2.M2, have to write it here since it has a weird interaction with the third species
     if (activeConstraints[V4_2M2]) {
         if (softConstraints[V4_2M2]) {
-            M2_2_3v_melodicIntervalsNotExceedMinorSixth_soft(*this, parts, containsThirdSpecies);
+            M2_2_3v_twoConsecutiveNotesAreNotTheSame_soft(*this, parts, containsThirdSpecies);
         } else {
-            M2_2_3v_melodicIntervalsNotExceedMinorSixth(*this, parts, containsThirdSpecies);
+            M2_2_3v_twoConsecutiveNotesAreNotTheSame(*this, parts, containsThirdSpecies);
         }
     }
 
     // H2 extended (Fux multi-voice rule): a disjunct weak beat must be consonant with
     // every other voice's strong beat, not only the lowest stratum. See constraints.cpp.
     for (Part* p : parts) {
-        if (p->getSpecies() == SECOND_SPECIES && activeConstraints[SP2_2H2]) {
+        if (activeConstraints[SP2_2H2] && p->getSpecies() == SECOND_SPECIES) {
             H2_2_arsisHarmoniesCannotBeDisonnant_multiVoice(*this, p, parts);
-        } else if (p->getSpecies() == THIRD_SPECIES && activeConstraints[SP3_3H2]) {
+        } else if (activeConstraints[SP3_3H2] && p->getSpecies() == THIRD_SPECIES) {
             H2_3_disonanceImpliesDiminution_multiVoice(*this, p, parts);
         }
         // Tonal rule (mandatory): disjunct weak beat must belong to the measure harmony.
-        if (p->getSpecies() == SECOND_SPECIES || p->getSpecies() == THIRD_SPECIES) {
-            chordMembershipOnDisjunctWeakBeats(*this, p, parts);
+        if (activeConstraints[V4_4H2] && (p->getSpecies() == SECOND_SPECIES || p->getSpecies() == THIRD_SPECIES)) {
+            H2_4_chordMembershipOnDisjunctWeakBeats(*this, p, parts);
         }
     }
 
@@ -152,43 +152,29 @@ FourVoiceCounterpoint::FourVoiceCounterpoint(vector<int> cf, vector<Species> sp,
     
     if(species[0]==FIFTH_SPECIES){
         branch(*this, counterpoint_1->getSpeciesArray(), INT_VAR_DEGREE_MAX(), INT_VAL_RND(3U));
+        branch(*this, counterpoint_1->getCambiataCostArray(), INT_VAR_DEGREE_MAX(), INT_VAL_SPLIT_MIN());
+        branch(*this, counterpoint_1->getNoSyncope(), BOOL_VAR_AFC_MAX(), BOOL_VAL_MIN());
     }
     if(species[1]==FIFTH_SPECIES){
         branch(*this, counterpoint_2->getSpeciesArray(), INT_VAR_DEGREE_MAX(), INT_VAL_RND(3U));
+        branch(*this, counterpoint_2->getCambiataCostArray(), INT_VAR_DEGREE_MAX(), INT_VAL_SPLIT_MIN());
+        branch(*this, counterpoint_2->getNoSyncope(), BOOL_VAR_AFC_MAX(), BOOL_VAL_MIN());
     }
     if(species[2]==FIFTH_SPECIES){
         branch(*this, counterpoint_3->getSpeciesArray(), INT_VAR_DEGREE_MAX(), INT_VAL_RND(3U));
-    }
-
-    if(species[0]==FIFTH_SPECIES){
-        branch(*this, counterpoint_1->getCambiataCostArray(), INT_VAR_DEGREE_MAX(), INT_VAL_SPLIT_MIN());
-    }
-    if(species[1]==FIFTH_SPECIES){
-        branch(*this, counterpoint_2->getCambiataCostArray(), INT_VAR_DEGREE_MAX(), INT_VAL_SPLIT_MIN());
-    }
-    if(species[2]==FIFTH_SPECIES){
         branch(*this, counterpoint_3->getCambiataCostArray(), INT_VAR_DEGREE_MAX(), INT_VAL_SPLIT_MIN());
-    }
-
-    if(species[0]==FIFTH_SPECIES){
-        branch(*this, counterpoint_1->getSyncopeCostArray(), INT_VAR_DEGREE_MAX(), INT_VAL_SPLIT_MIN());
-    }
-    if(species[1]==FIFTH_SPECIES){
-        branch(*this, counterpoint_2->getSyncopeCostArray(), INT_VAR_DEGREE_MAX(), INT_VAL_SPLIT_MIN());
-    }
-    if(species[2]==FIFTH_SPECIES){
-        branch(*this, counterpoint_3->getSyncopeCostArray(), INT_VAR_DEGREE_MAX(), INT_VAL_SPLIT_MIN());
+        branch(*this, counterpoint_3->getNoSyncope(), BOOL_VAR_AFC_MAX(), BOOL_VAL_MIN());
     }
     
 
     if(species[0]==FOURTH_SPECIES){
-        branch(*this, counterpoint_1->getSyncopeCostArray(),  INT_VAR_DEGREE_MAX(), INT_VAL_MIN());
+        branch(*this, counterpoint_1->getNoSyncope(), BOOL_VAR_AFC_MAX(), BOOL_VAL_MIN());
     }
     if(species[1]==FOURTH_SPECIES){
-        branch(*this, counterpoint_2->getSyncopeCostArray(),  INT_VAR_DEGREE_MAX(), INT_VAL_MIN());
+        branch(*this, counterpoint_2->getNoSyncope(), BOOL_VAR_AFC_MAX(), BOOL_VAL_MIN());
     }
     if(species[2]==FOURTH_SPECIES){
-        branch(*this, counterpoint_3->getSyncopeCostArray(),  INT_VAR_DEGREE_MAX(), INT_VAL_MIN());
+        branch(*this, counterpoint_3->getNoSyncope(), BOOL_VAR_AFC_MAX(), BOOL_VAL_MIN());
     }
     
     // Branch on counterpoints in order of increasing complexity (fewer notes first)
@@ -213,7 +199,6 @@ FourVoiceCounterpoint::FourVoiceCounterpoint(vector<int> cf, vector<Species> sp,
     }
     
     branch(*this, cost(), INT_VAR_NONE(), INT_VAL_MAX()); // Solves all "ValOfUnassignedVar" problems + accelerate every test
-    // cout << "HERE" << endl;
 }
 
 // COPY CONSTRUCTOR

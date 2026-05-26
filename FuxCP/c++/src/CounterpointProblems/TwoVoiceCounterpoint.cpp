@@ -35,7 +35,9 @@ TwoVoiceCounterpoint::TwoVoiceCounterpoint(vector<int> cf, Species sp, int v_typ
     }
 
     // M2_1 : variety cost (penalize repeated notes in 2-voice mode)
-    M2_1_varietyCost(*this, parts);
+    if (activeConstraints[V2_1M4]) {
+        M2_1_varietyCost(*this, parts);
+    }
 
     // 1.H4 (G9)
     if (activeConstraints[V2_G9]) {
@@ -114,9 +116,7 @@ TwoVoiceCounterpoint::TwoVoiceCounterpoint(vector<int> cf, Species sp, int v_typ
         branch(*this, counterpoint_1->getCambiataCostArray(),  INT_VAR_DEGREE_MAX(), INT_VAL_MIN());
     }
     if(species==FOURTH_SPECIES || species==FIFTH_SPECIES){
-        BoolVarArray noSync = counterpoint_1->getNoSyncope(); // Branch on the tie intervals directly (faster)
-        branch(*this, noSync, BOOL_VAR_AFC_MAX(), BOOL_VAL_MIN());
-        //branch(*this, counterpoint_1->getSyncopeCostArray(), INT_VAR_DEGREE_MAX(), INT_VAL_MIN());
+        branch(*this, counterpoint_1->getNoSyncope(), BOOL_VAR_AFC_MAX(), BOOL_VAL_MIN()); // Branch on the tie intervals directly (faster)
     }
     //branch(*this, solutionArray, INT_VAR_SIZE_MIN(), INT_VAL_MIN());
     //branch(*this, solutionArray, INT_VAR_SIZE_MIN(), INT_VAL_RND(1U)); // More efficient when random

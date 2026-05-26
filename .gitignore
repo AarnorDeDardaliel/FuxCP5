@@ -45,18 +45,13 @@ Main
 
 # Output files
 *.mid
-*.csv
-!FuxCP/config/
-!FuxCP/config/*.csv
-!FuxCP/config/ReferenceData/
-!FuxCP/config/ReferenceData/*csv
 FuxCP/scripts/
 
 FuxCP/compiled/
-FuxCP/results/
 Latex/results/
 results/
 Latex/
 
-# Accept all src files
+# Accept all src files and specific results
 !FuxCP/c++/src/**
+!results_karim/**

@@ -105,7 +105,7 @@ ThreeVoiceCounterpoint::ThreeVoiceCounterpoint(vector<int> cf, vector<Species> s
 
     //2.M2, have to write it here since it has a weird interaction with the third species
     if (activeConstraints[V3_2M2]) {
-        M2_2_3v_melodicIntervalsNotExceedMinorSixth(*this, parts, containsThirdSpecies);
+        M2_2_3v_twoConsecutiveNotesAreNotTheSame(*this, parts, containsThirdSpecies);
     }
 
     // H2 extended (Fux multi-voice rule): a disjunct weak beat must be consonant with
@@ -117,8 +117,8 @@ ThreeVoiceCounterpoint::ThreeVoiceCounterpoint(vector<int> cf, vector<Species> s
             H2_3_disonanceImpliesDiminution_multiVoice(*this, p, parts);
         }
         // Tonal rule (mandatory): disjunct weak beat must belong to the measure harmony.
-        if (p->getSpecies() == SECOND_SPECIES || p->getSpecies() == THIRD_SPECIES) {
-            chordMembershipOnDisjunctWeakBeats(*this, p, parts);
+        if (activeConstraints[V3_4H2] && (p->getSpecies() == SECOND_SPECIES || p->getSpecies() == THIRD_SPECIES)) {
+            H2_4_chordMembershipOnDisjunctWeakBeats(*this, p, parts);
         }
     }
 
@@ -169,10 +169,12 @@ ThreeVoiceCounterpoint::ThreeVoiceCounterpoint(vector<int> cf, vector<Species> s
     }
     
     if(species[0]==FOURTH_SPECIES || species[0]==FIFTH_SPECIES){
-        branch(*this, counterpoint_1->getSyncopeCostArray(),  INT_VAR_DEGREE_MAX(), INT_VAL_MIN());
+        branch(*this, counterpoint_1->getNoSyncope(), BOOL_VAR_AFC_MAX(), BOOL_VAL_MIN());
+        //branch(*this, counterpoint_1->getSyncopeCostArray(),  INT_VAR_DEGREE_MAX(), INT_VAL_MIN());
     }
     if(species[1]==FOURTH_SPECIES || species[1]==FIFTH_SPECIES){
-        branch(*this, counterpoint_2->getSyncopeCostArray(),  INT_VAR_DEGREE_MAX(), INT_VAL_MIN());
+        branch(*this, counterpoint_2->getNoSyncope(), BOOL_VAR_AFC_MAX(), BOOL_VAL_MIN());
+        //branch(*this, counterpoint_2->getSyncopeCostArray(),  INT_VAR_DEGREE_MAX(), INT_VAL_MIN());
     }
     
     // Dispatched through globals (g_solution_var_sel / g_solution_val_sel) so

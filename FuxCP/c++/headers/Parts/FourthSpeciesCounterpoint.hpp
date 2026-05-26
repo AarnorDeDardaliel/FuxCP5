@@ -7,7 +7,6 @@
 
 #include "Part.hpp"
 #include "CantusFirmus.hpp"
-#include "constraints.hpp"
 
 /**
  * This class represents a counterpoint of the first species. It inherits from the Part class.

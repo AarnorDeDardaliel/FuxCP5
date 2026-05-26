@@ -192,7 +192,7 @@ static int resolutionBeatIndex(Part* voice, int i){
     return (voice->getSpecies() == FOURTH_SPECIES) ? i*4+2 : strongBeatIndex(voice, i);
 }
 
-void chordMembershipOnDisjunctWeakBeats(Home home, Part* sp, vector<Part*> allVoices){
+void H2_4_chordMembershipOnDisjunctWeakBeats(Home home, Part* sp, vector<Part*> allVoices){
     // MANDATORY tonal rule (Bitsch §59). A disjunct weak-beat note must belong to the
     // harmony of its half-measure (set of pitch classes of the structural notes of all
     // voices). Normally a single harmony spans the whole measure (the downbeat pitch
@@ -454,7 +454,7 @@ void M2_2_2v_twoConsecutiveNotesAreNotTheSame(Home home, Part* part){
     rel(home, part->getSecondSpeciesMIntervals(), IRT_NQ, 0);
 }
 
-void M2_2_3v_melodicIntervalsNotExceedMinorSixth(Home home, vector<Part*> parts, bool containsThirdSpecies){
+void M2_2_3v_twoConsecutiveNotesAreNotTheSame(Home home, vector<Part*> parts, bool containsThirdSpecies){
     for(int i = 1; i < parts.size(); i++){
         if(parts[i]->getSpecies()==THIRD_SPECIES){
             containsThirdSpecies=1;
@@ -909,7 +909,7 @@ void G9_lastChordSameAsFundamental_soft(Home home, Stratum* lowest, Part* cantus
     rel(home, (firstMatch == 0) >> (relaxCosts[startIdx+1] == 1));
 }
 
-void M2_2_3v_melodicIntervalsNotExceedMinorSixth_soft(Home home, vector<Part*> parts, bool containsThirdSpecies){
+void M2_2_3v_twoConsecutiveNotesAreNotTheSame_soft(Home home, vector<Part*> parts, bool containsThirdSpecies){
     // Soft version: instead of hard IRT_NQ 0, count violations
     for(int i = 1; i < parts.size(); i++){
         if(parts[i]->getSpecies()==THIRD_SPECIES){

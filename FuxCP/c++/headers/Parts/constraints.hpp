@@ -79,7 +79,7 @@ void H2_3_disonanceImpliesDiminution_multiVoice(Home home, Part* thirdSpPart, ve
  * and yields a second harmony for the 2nd half (beats +2/+3). Passing tones stay exempt;
  * the penultimate measure (cadence) is exempt.
  */
-void chordMembershipOnDisjunctWeakBeats(Home home, Part* sp, vector<Part*> allVoices);
+void H2_4_chordMembershipOnDisjunctWeakBeats(Home home, Part* sp, vector<Part*> allVoices);
 
 /**
  * 1.H3 : The last chord must be a perfect consonance. This applies to 2 voices, the 3 and 4 voice version is applied in the stratum constructors
@@ -146,7 +146,7 @@ void M1_2_octaveLeap(Home home, Part* part, Stratum* low);
 
 void M2_2_2v_twoConsecutiveNotesAreNotTheSame(Home home, Part* part);
 
-void M2_2_3v_melodicIntervalsNotExceedMinorSixth(Home home, vector<Part*> parts, bool containsThirdSpecies);
+void M2_2_3v_twoConsecutiveNotesAreNotTheSame(Home home, vector<Part*> parts, bool containsThirdSpecies);
 
 /**
  * 1.M2 : The notes of each part should be as diverse as possible
@@ -220,7 +220,7 @@ void G9_lastChordSameAsFundamental_soft(Home home, Stratum* lowest, Part* cantus
  * Soft version of M2_2_3v: melodic intervals of 2sp should not have unisons.
  * Violations counted in the Part's relaxationCostArray.
  */
-void M2_2_3v_melodicIntervalsNotExceedMinorSixth_soft(Home home, vector<Part*> parts, bool containsThirdSpecies);
+void M2_2_3v_twoConsecutiveNotesAreNotTheSame_soft(Home home, vector<Part*> parts, bool containsThirdSpecies);
 
 /**
  * Soft version of H2_3: dissonance implies diminution for 3rd species.
