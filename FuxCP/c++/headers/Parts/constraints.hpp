@@ -52,9 +52,9 @@ void H1_3_fiveConsecutiveNotesByJointDegree(Home home, Part* part);
  */
 void H2_1_startWithPerfectConsonance(Home home, Part* part);
 
-void H2_2_arsisHarmoniesCannotBeDisonnant(Home home, Part* part);
+void H2_2_arsisHarmoniesCannotBeDissonant(Home home, Part* part);
 
-void H2_3_disonanceImpliesDiminution(Home home, Part* part);
+void H2_3_dissonanceImpliesDiminution(Home home, Part* part);
 
 /**
  * Extension of H2_2 for compositions with 3 or more voices.
@@ -63,14 +63,14 @@ void H2_3_disonanceImpliesDiminution(Home home, Part* part);
  * caught. This variant checks the arsis pitch-class interval of a 2nd-species voice
  * against every other voice and ties the dissonance escape to isDiminution[i].
  */
-void H2_2_arsisHarmoniesCannotBeDisonnant_multiVoice(Home home, Part* secondSpPart, vector<Part*> otherVoices);
+void H2_2_arsisHarmoniesCannotBeDissonant_multiVoice(Home home, Part* secondSpPart, vector<Part*> otherVoices);
 
 /**
  * Extension of H2_3 for 3+ voices, 3rd species. Checks all three weak beats (+1/+2/+3)
  * of each measure against every other voice's strong beat. A weak beat may be dissonant
  * only if it is a genuine passing tone (approached AND left by step).
  */
-void H2_3_disonanceImpliesDiminution_multiVoice(Home home, Part* thirdSpPart, vector<Part*> otherVoices);
+void H2_3_dissonanceImpliesDiminution_multiVoice(Home home, Part* thirdSpPart, vector<Part*> otherVoices);
 
 /**
  * MANDATORY tonal rule (Bitsch §59). A disjunct weak-beat note of a 2nd/3rd-species voice
@@ -226,12 +226,12 @@ void M2_2_3v_twoConsecutiveNotesAreNotTheSame_soft(Home home, vector<Part*> part
  * Soft version of H2_3: dissonance implies diminution for 3rd species.
  * Violations counted in the Part's relaxationCostArray.
  */
-void H2_3_disonanceImpliesDiminution_soft(Home home, Part* part);
+void H2_3_dissonanceImpliesDiminution_soft(Home home, Part* part);
 
 /**
  * Soft version of H2_2: arsis harmonies dissonance for 2nd species.
  * Violations counted in the Part's relaxationCostArray.
  */
-void H2_2_arsisHarmoniesCannotBeDisonnant_soft(Home home, Part* part);
+void H2_2_arsisHarmoniesCannotBeDissonant_soft(Home home, Part* part);
 
 #endif

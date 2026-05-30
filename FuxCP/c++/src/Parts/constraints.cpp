@@ -109,7 +109,7 @@ void H2_1_startWithPerfectConsonance(Home home, Part* part){
     dom(home, part->getHIntervals()[0], IntSet(IntArgs(PERFECT_CONSONANCES)));
 }
 
-void H2_2_arsisHarmoniesCannotBeDisonnant(Home home, Part* part){
+void H2_2_arsisHarmoniesCannotBeDissonant(Home home, Part* part){
     
     for(int i = 0; i < part->getNMeasures()-1; i++){
         if(i != part->getNMeasures()-2){ //if it is the penultimate measure
@@ -120,7 +120,7 @@ void H2_2_arsisHarmoniesCannotBeDisonnant(Home home, Part* part){
     }
 }
 
-void H2_3_disonanceImpliesDiminution(Home home, Part* part){
+void H2_3_dissonanceImpliesDiminution(Home home, Part* part){
     for(int i = 0; i < part->getIsDiminution().size(); i++){
         BoolVar band1 = BoolVar(home, 0, 1);
         BoolVar band2 = BoolVar(home, 0, 1);
@@ -137,7 +137,7 @@ static int strongBeatIndex(Part* voice, int i){
     return (voice->getSpecies() == CANTUS_FIRMUS) ? i : i*4;
 }
 
-void H2_2_arsisHarmoniesCannotBeDisonnant_multiVoice(Home home, Part* secondSpPart, vector<Part*> otherVoices){
+void H2_2_arsisHarmoniesCannotBeDissonant_multiVoice(Home home, Part* secondSpPart, vector<Part*> otherVoices){
     // h_intervals stored on each Part are computed only against the lowest stratum.
     // In 3+ voice settings, the dissonance between the 2nd-species arsis and any
     // OTHER voice is therefore never checked. Fux rule: a disjunct weak beat must be
@@ -157,7 +157,7 @@ void H2_2_arsisHarmoniesCannotBeDisonnant_multiVoice(Home home, Part* secondSpPa
     }
 }
 
-void H2_3_disonanceImpliesDiminution_multiVoice(Home home, Part* thirdSpPart, vector<Part*> otherVoices){
+void H2_3_dissonanceImpliesDiminution_multiVoice(Home home, Part* thirdSpPart, vector<Part*> otherVoices){
     // 3rd species has 4 notes per measure: 1 strong beat (i*4) + 3 weak beats (i*4+1,+2,+3).
     // The base H2_3 only checks the central weak beat (+2) against the bass. Here we check
     // ALL three weak beats against EVERY other voice's strong beat. A weak beat may be
@@ -772,17 +772,20 @@ void noSuccessiveSamePerfectIntervalOnIndices(Home home, Part* p1, Part* p2, vec
 
     IntVarArray notes1 = p1->getNotes();
     IntVarArray notes2 = p2->getNotes();
-    if (notes1.size() != notes2.size()){ // p1 is cantus firmus
+    if (notes1.size() < notes2.size()){ // p1 is cantus firmus
         notes1 = expandCantusNotes(home, notes1);
+    }
+    if (notes1.size() > notes2.size()){ // p2 is cantus firmus
+        notes2 = expandCantusNotes(home, notes2);
     }
 
     // Building intervals array
     IntVarArray hIntervals12(home, nIndices, 0, MAJOR_SEVENTH);
     for (int i = 0; i < nIndices-1; i++) {
         int idx = indices[i];
-        rel(home, hIntervals12[i] == (abs(notes1[idx] - notes2[idx]) % 12));
+        rel(home, hIntervals12[i] == (abs(notes2[idx] - notes1[idx]) % 12));
     }
-    rel(home, hIntervals12[nIndices-1] == (abs(notes1[indices.back()] - notes2[indices.back()]) % 12)); // Final note
+    rel(home, hIntervals12[nIndices-1] == (abs(notes2[indices.back()] - notes1[indices.back()]) % 12)); // Final note
 
     // Constraint (Bitsch, rule 42, p.24)
     for (int i = 0; i < hIntervals12.size()-1; i++) {
@@ -948,7 +951,7 @@ void M2_2_3v_twoConsecutiveNotesAreNotTheSame_soft(Home home, vector<Part*> part
     }
 }
 
-void H2_3_disonanceImpliesDiminution_soft(Home home, Part* part){
+void H2_3_dissonanceImpliesDiminution_soft(Home home, Part* part){
     // Soft version: instead of hard BOT_OR = 1, count violations
     int nConstraints = part->getIsDiminution().size();
     part->initRelaxationCostArray(home, nConstraints);
@@ -963,7 +966,7 @@ void H2_3_disonanceImpliesDiminution_soft(Home home, Part* part){
     }
 }
 
-void H2_2_arsisHarmoniesCannotBeDisonnant_soft(Home home, Part* part){
+void H2_2_arsisHarmoniesCannotBeDissonant_soft(Home home, Part* part){
     // Soft version: instead of hard reify RM_PMI, count violations when arsis is dissonant and not diminution
     int nConstraints = 0;
     for(int i = 0; i < part->getNMeasures()-1; i++){

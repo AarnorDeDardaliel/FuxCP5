@@ -109,9 +109,9 @@ FourVoiceCounterpoint::FourVoiceCounterpoint(vector<int> cf, vector<Species> sp,
     // every other voice's strong beat, not only the lowest stratum. See constraints.cpp.
     for (Part* p : parts) {
         if (activeConstraints[SP2_2H2] && p->getSpecies() == SECOND_SPECIES) {
-            H2_2_arsisHarmoniesCannotBeDisonnant_multiVoice(*this, p, parts);
+            H2_2_arsisHarmoniesCannotBeDissonant_multiVoice(*this, p, parts);
         } else if (activeConstraints[SP3_3H2] && p->getSpecies() == THIRD_SPECIES) {
-            H2_3_disonanceImpliesDiminution_multiVoice(*this, p, parts);
+            H2_3_dissonanceImpliesDiminution_multiVoice(*this, p, parts);
         }
         // Tonal rule (mandatory): disjunct weak beat must belong to the measure harmony.
         if (activeConstraints[V4_4H2] && (p->getSpecies() == SECOND_SPECIES || p->getSpecies() == THIRD_SPECIES)) {

@@ -4952,6 +4952,42 @@ void FuxTest::test_gen_constrains_check(Species species, int n_voices, vector<in
 
 void FuxTest::test_gen_custom(){ // Generic tests
     cout << "===== test generation custom =====" << endl;
+
+    // 2-voices
+    for (int sp = 1; sp < 6; sp++){
+        for (int v_type = 1; v_type < 4; v_type++){
+            GenerationInput input;
+            input.cf_notes = {48, 50, 53, 52, 55, 53, 52, 50, 48};
+            input.species = {int_to_species(sp)};
+            input.v_type = {v_type};
+            input.verbose = true;
+            input.stagnation_ms = 0;
+            input.timeout_ms = 360000; // 6min
+            input.output_subdir = "";
+            input.preset_name = "default";
+            generate_counterpoint(input);
+        }
+    }
+    
+    // 3-voices
+    for (int sp = 1; sp < 6; sp++){
+        for (int v_type = 1; v_type < 4; v_type++){
+            for(int sec_type = 1; sec_type < 4; sec_type++){
+                GenerationInput input;
+                input.cf_notes = {48, 50, 53, 52, 55, 53, 52, 50, 48};
+                input.species = {FIRST_SPECIES, int_to_species(sp)};
+                input.v_type = {sec_type, v_type};
+                input.verbose = true;
+                input.stagnation_ms = 0;
+                input.timeout_ms = 360000; // 6min
+                input.output_subdir = "";
+                input.preset_name = "default";
+                generate_counterpoint(input);
+            }
+        }
+    }
+
+    // 4-voices
     vector<pair<int,int>> cp_types = {{1,1},{1,2},{1,3},{2,2},{2,3},{3,3}};
     
     for (int sp = 1; sp < 6; sp++){
@@ -4965,9 +5001,9 @@ void FuxTest::test_gen_custom(){ // Generic tests
                 input.v_type = {local_types.first, local_types.second, main_type};
                 input.verbose = true;
                 input.stagnation_ms = 0;
-                input.timeout_ms = 480000; // 8min
-                input.output_subdir = "bryce_gen";
-                input.preset_name = "bryce";
+                input.timeout_ms = 360000; // 6min
+                input.output_subdir = "";
+                input.preset_name = "default";
                 generate_counterpoint(input);
             }
         }

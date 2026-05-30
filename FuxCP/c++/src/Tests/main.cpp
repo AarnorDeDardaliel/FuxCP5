@@ -21,6 +21,7 @@ int main(int argc, char* argv[]) {
     }
 
     if(argc==1){ // QUICK TEST on API
+        // EXAMPLE of single
         cout << "------------- API TEST -------------" << endl;
 
         GenerationInput gi;
@@ -29,10 +30,76 @@ int main(int argc, char* argv[]) {
         gi.v_type = {2 , 1};
         gi.verbose = true;
         gi.stagnation_ms = 0;
-        gi.output_subdir = "bryce_gen";
+        gi.output_subdir = "api_basic_test";
         gi.timeout_ms = 2000;
 
         GenerationResult result = generate_counterpoint(gi);
+
+        // ---------- DISABLED BY DEFAULT ----------
+        // EXAMPLE of generations of many many configurations of counterpoints :
+        //      - every species/voices
+        //      - every v_type configuration (with values from 1 to 3)
+        //
+        // DISABLED by default because 150 generations is a lot
+        //
+        if (false){
+            // 2-voices (15 cases)
+            for (int sp = 1; sp < 6; sp++){
+                for (int v_type = 1; v_type < 4; v_type++){
+                    GenerationInput input;
+                    input.cf_notes = {48, 50, 53, 52, 55, 53, 52, 50, 48};
+                    input.species = {int_to_species(sp)};
+                    input.v_type = {v_type};
+                    input.verbose = true;
+                    input.stagnation_ms = 0;
+                    input.timeout_ms = 360000; // 6min
+                    input.output_subdir = "test_multi";
+                    input.preset_name = "default";
+                    generate_counterpoint(input);
+                }
+            }
+            
+            // 3-voices (45 cases)
+            for (int sp = 1; sp < 6; sp++){
+                for (int v_type = 1; v_type < 4; v_type++){
+                    for(int sec_type = 1; sec_type < 4; sec_type++){
+                        GenerationInput input;
+                        input.cf_notes = {48, 50, 53, 52, 55, 53, 52, 50, 48};
+                        input.species = {FIRST_SPECIES, int_to_species(sp)};
+                        input.v_type = {sec_type, v_type};
+                        input.verbose = true;
+                        input.stagnation_ms = 0;
+                        input.timeout_ms = 360000; // 6min
+                        input.output_subdir = "test_multi";
+                        input.preset_name = "default";
+                        generate_counterpoint(input);
+                    }
+                }
+            }
+
+            // 4-voices (90 cases)
+            vector<pair<int,int>> cp_types = {{1,1},{1,2},{1,3},{2,2},{2,3},{3,3}};
+            
+            for (int sp = 1; sp < 6; sp++){
+                for (int main_type = 1; main_type < 4; main_type++){
+                    for(int cp_type_idx = 0; cp_type_idx < cp_types.size(); cp_type_idx++){
+                        pair<int,int> local_types = cp_types[cp_type_idx];
+
+                        GenerationInput input;
+                        input.cf_notes = {48, 50, 53, 52, 55, 53, 52, 50, 48};
+                        input.species = {FIRST_SPECIES, FIRST_SPECIES, int_to_species(sp)};
+                        input.v_type = {local_types.first, local_types.second, main_type};
+                        input.verbose = true;
+                        input.stagnation_ms = 0;
+                        input.timeout_ms = 360000; // 6min
+                        input.output_subdir = "test_multi";
+                        input.preset_name = "default";
+                        generate_counterpoint(input);
+                    }
+                }
+            }
+        }
+        
     } else if(argc==2){ // FIGURE / FUX TESTS
         string arg1 = argv[1];
         char* str = argv[1];

@@ -149,9 +149,9 @@ ThirdSpeciesCounterpoint::ThirdSpeciesCounterpoint(Home home, int size, vector<i
     //3.H2 : any dissonant note implies that it is surrounded by consonant notes
     if (activeConstraints[SP3_3H2]) {
         if (softConstraints[SP3_3H2]) {
-            H2_3_disonanceImpliesDiminution_soft(home, this);
+            H2_3_dissonanceImpliesDiminution_soft(home, this);
         } else {
-            H2_3_disonanceImpliesDiminution(home, this);
+            H2_3_dissonanceImpliesDiminution(home, this);
         }
     }
     //3.H3 : cambiata cost

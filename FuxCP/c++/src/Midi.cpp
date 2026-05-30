@@ -113,13 +113,19 @@ static void addVoiceEvents(std::vector<MidiEvent>& events,
         // Dernière note sans décalage
         start = i * cpDur;
         events.push_back({start, noteOn, (uint8_t)notes[i], velocity});
-        events.push_back({start + cpDur, noteOff, (uint8_t)notes[i], 0});
+        events.push_back({start + rondeDur, noteOff, (uint8_t)notes[i], 0});
     } else {
-        for (size_t i = 0; i < notes.size(); ++i) {
-            uint32_t start = i * cpDur;
+        uint32_t start;
+        for (size_t i = 0; i < notes.size()-1; ++i) {
+            start = i * cpDur;
             events.push_back({start, noteOn, (uint8_t)notes[i], velocity});
             events.push_back({start + cpDur, noteOff, (uint8_t)notes[i], 0});
         }
+        // Last note (always rond)
+        size_t i = notes.size()-1;
+        start = i * cpDur;
+        events.push_back({start, noteOn, (uint8_t)notes[i], velocity});
+        events.push_back({start + rondeDur, noteOff, (uint8_t)notes[i], 0});
     }
 }
 

@@ -9,16 +9,21 @@
 // counterpoint without depending on the CLI or on the internal workflow
 // of the generation engine.
 //
+// This interface is intentionally lighter than the CLI: the cantus firmus 
+// is always provided directly, no campaign logic, no list commands, no 
+// testing-specific options
+//
 // Typical usage:
 //   1. Fill a GenerationInput structure
 //   2. Call generate_counterpoint(input)
 //   3. Read the returned GenerationResult
-//
-// This interface is intentionally lighter than the CLI:
-//   - the cantus firmus is provided directly as MIDI notes
-//   - no campaign logic
-//   - no list commands
-//   - no testing-specific options
+// 
+// For custom metaparameters (melodic_params, general_params, specific_params and importance) :
+//   - Add a line in config > presets.csv
+//   - set 'preset_name' to the name of your new preset
+// 
+// For example of uses, see "QUICK TEST on API" part in Tests/main.cpp
+// 
 // =====================================================================
 
 
