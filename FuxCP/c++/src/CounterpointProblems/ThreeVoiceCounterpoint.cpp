@@ -108,7 +108,8 @@ ThreeVoiceCounterpoint::ThreeVoiceCounterpoint(vector<int> cf, vector<Species> s
         M2_2_3v_twoConsecutiveNotesAreNotTheSame(*this, parts, containsThirdSpecies);
     }
 
-    // H2 extended (Fux multi-voice rule): a disjunct weak beat must be consonant with
+    // [Claude Code]
+    // H2 extended (multi-voice rule): a disjunct weak beat must be consonant with
     // every other voice's strong beat, not only the lowest stratum. See constraints.cpp.
     for (Part* p : parts) {
         if (p->getSpecies() == SECOND_SPECIES && activeConstraints[SP2_2H2]) {
@@ -170,21 +171,18 @@ ThreeVoiceCounterpoint::ThreeVoiceCounterpoint(vector<int> cf, vector<Species> s
     
     if(species[0]==FOURTH_SPECIES || species[0]==FIFTH_SPECIES){
         branch(*this, counterpoint_1->getNoSyncope(), BOOL_VAR_AFC_MAX(), BOOL_VAL_MIN());
-        //branch(*this, counterpoint_1->getSyncopeCostArray(),  INT_VAR_DEGREE_MAX(), INT_VAL_MIN());
     }
     if(species[1]==FOURTH_SPECIES || species[1]==FIFTH_SPECIES){
         branch(*this, counterpoint_2->getNoSyncope(), BOOL_VAR_AFC_MAX(), BOOL_VAL_MIN());
-        //branch(*this, counterpoint_2->getSyncopeCostArray(),  INT_VAR_DEGREE_MAX(), INT_VAL_MIN());
     }
-    
+
     // Dispatched through globals (g_solution_var_sel / g_solution_val_sel) so
-    // SolverBench can swap heuristics without recompiling. Defaults are
+    // callers can swap heuristics without recompiling. Defaults are
     // AFC_MAX + VAL_RND, matching the 2-voice production branching.
     branch_solution_array_dynamic(*this, solutionArray);
-    branch(*this, cost(), INT_VAR_NONE(), INT_VAL_MIN()); // Solves all "ValOfUnassignedVar" problems + accelerate every test
+    branch(*this, cost(), INT_VAR_NONE(), INT_VAL_MIN());
 
     writeToLogFile(("solution array size : " + std::to_string(solutionArray.size())).c_str());
-
 }
 
 // COPY CONSTRUCTOR

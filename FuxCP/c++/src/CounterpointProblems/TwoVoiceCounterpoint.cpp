@@ -90,6 +90,7 @@ TwoVoiceCounterpoint::TwoVoiceCounterpoint(vector<int> cf, Species sp, int v_typ
         P9_noSimultaneousRepetition(*this, parts);
     }
 
+    // [Claude Code]
     // Tonal rule (mandatory): a disjunct weak beat must belong to the measure harmony.
     // Previously applied only in 3v/4v; extending it to 2 voices also closes the gap
     // where 3rd-species weak beats +1/+3 were left unchecked for consonance.
@@ -97,11 +98,11 @@ TwoVoiceCounterpoint::TwoVoiceCounterpoint(vector<int> cf, Species sp, int v_typ
         H2_4_chordMembershipOnDisjunctWeakBeats(*this, counterpoint_1, parts);
     }
 
+    // [Claude Code]
     // Consonance on the three weak beats of 2-voice 3rd species: reuse the proven multi-voice
     // check. The in-species H2_3 only ties the central weak beat and reads a free
     // getConsonance(), so disjunct dissonances (e.g. a leapt-to fourth fa/do) slipped onto
-    // beats +1/+3. This computes the interval from the notes vs the CF and forbids leaping
-    // into a dissonance or leaving it by leap.
+    // beats +1/+3.
     if (counterpoint_1->getSpecies() == THIRD_SPECIES && activeConstraints[SP3_3H2]) {
         H2_3_dissonanceImpliesDiminution_multiVoice(*this, counterpoint_1, parts);
     }
@@ -132,15 +133,10 @@ TwoVoiceCounterpoint::TwoVoiceCounterpoint(vector<int> cf, Species sp, int v_typ
         branch(*this, counterpoint_1->getCambiataCostArray(),  INT_VAR_DEGREE_MAX(), INT_VAL_MIN());
     }
     if(species==FOURTH_SPECIES || species==FIFTH_SPECIES){
-        branch(*this, counterpoint_1->getNoSyncope(), BOOL_VAR_AFC_MAX(), BOOL_VAL_MIN()); // Branch on the tie intervals directly (faster)
+        branch(*this, counterpoint_1->getNoSyncope(), BOOL_VAR_AFC_MAX(), BOOL_VAL_MIN());
     }
-    //branch(*this, solutionArray, INT_VAR_SIZE_MIN(), INT_VAL_MIN());
-    //branch(*this, solutionArray, INT_VAR_SIZE_MIN(), INT_VAL_RND(1U)); // More efficient when random
-    branch(*this, solutionArray, INT_VAR_AFC_MAX(), INT_VAL_RND(1U)); // AFC to focus a bit more on variables involved in failures
-    //branch(*this, solutionArray, INT_VAR_AFC_MAX(), INT_VAL_MIN()); // Better --> NO, too slow
-
-    branch(*this, cost(), INT_VAR_NONE(), INT_VAL_MAX()); // Solves all "ValOfUnassignedVar" problems + accelerate every test
-
+    branch(*this, solutionArray, INT_VAR_AFC_MAX(), INT_VAL_RND(1U));
+    branch(*this, cost(), INT_VAR_NONE(), INT_VAL_MAX());
 }
 // COPY CONSTRUCTOR
 TwoVoiceCounterpoint::TwoVoiceCounterpoint(TwoVoiceCounterpoint& s) : CounterpointProblem(s){

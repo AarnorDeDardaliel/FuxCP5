@@ -1,7 +1,8 @@
+// [Claude Code]
 // ConfigLoader.hpp
 // Chargement des configurations CSV (cantus_firmus, presets).
-// Toutes les valeurs autrefois hardcodées dans GenerateCounterpoint.cpp / Generations.cpp
-// sont désormais externalisées dans FuxCP/config/*.csv.
+// Toutes les valeurs autrefois hardcodées dans Generations.cpp sont désormais
+// externalisées dans FuxCP/config/*.csv.
 
 #ifndef FUXCP_CONFIG_LOADER_HPP
 #define FUXCP_CONFIG_LOADER_HPP

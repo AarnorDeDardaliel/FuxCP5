@@ -15,8 +15,6 @@ FifthSpeciesCounterpoint::FifthSpeciesCounterpoint(Home home, int nMes, vector<i
     for(int i = lowerBound; i <= upperBound; i++){
         cp_range.push_back(i);
     }
-    // cout << lowerBound << endl;
-    // cout << upperBound << endl;
     /*
     if borrowMode is enabled, the domain is extended to make the inclusion of borrowed notes possible. We can see from Fux's examples
     that he does like to borrow notes, so the borrow cost should just do the job and still allow borrowed notes, not outright forbid them
@@ -257,34 +255,6 @@ FifthSpeciesCounterpoint::FifthSpeciesCounterpoint(Home home, int nMes, vector<i
      *  ===========================================================================
      */ 
 
-    //Only one possible value for non constrained variables
-    // for(int i = 0; i < fifthSpeciesNotesCp.size()-1; i++){
-    //     //rel(home, fifthSpeciesNotesCp[i], IRT_EQ, fifthSpeciesNotesCp[i+1], Reify(isNthSpeciesArray[(i*5)], RM_IMP));
-    // }
-
-    //DISABELED
-    // //is penult cons to cf
-    // if (activeConstraints[SP5_H3]) {
-    //     BoolVar isPenultConsToCf = BoolVar(home, 0, 1);
-    //     vector<int> consonances = {0,3,4,7,8,9,-3,-4,-7,-8,-9};
-    //     IntVarArray res = IntVarArray(home, consonances.size(), 0, 1);
-    //     IntVar sm = IntVar(home, 0, consonances.size());
-    //     for(int l = 0; l < consonances.size(); l++){                          
-    //         BoolVar b1 = BoolVar(home, 0, 1);
-    //         rel(home, h_intervals[h_intervals.size()-5], IRT_EQ, consonances[l], Reify(b1)); 
-    //         ite(home, b1, IntVar(home, 1, 1), IntVar(home, 0, 0), res[l]);           
-    //     }
-    //     IntVarArgs x(res.size());
-    //     for(int t = 0; t < consonances.size(); t++){
-    //         x[t] = res[t];                                                          
-    //     }
-    //     rel(home, sm, IRT_EQ, expr(home, sum(x)));                                     
-    //     rel(home, sm, IRT_GR, 0, Reify(isPenultConsToCf));                     
-
-    //     rel(home, isFourthSpeciesArray[isFourthSpeciesArray.size()-5], BOT_AND, isPenultConsToCf, 0); // if the penultimate note is part of the fourth species (isFourthSpeciesArray[isFourthSpeciesArray.size()-5] is true), then it must not be consonant with the cantus firmus (
-        
-    // }
-    
     // 1.H1 every thesis note should be consonant
     if (activeConstraints[SP5_H4]) {
         for(int i = 0; i < isConsonance.size(); i+=4){ //checks every thesis note
@@ -313,18 +283,14 @@ FifthSpeciesCounterpoint::FifthSpeciesCounterpoint(Home home, int nMes, vector<i
         }
     }
     
+    // [Claude Code]
     // 3.H2 a dissonant 3rd-species weak beat (florid in quarters) must be a genuine passing
     // tone — approached AND left by step. The original rule had two gaps: it only tied the
-    // CENTRAL weak beat (+2), leaving +1 and +3 free to carry a leapt-to dissonance (e.g. a
-    // fourth fa/do reached by leap); and the `|| isThirdSpeciesArray[(i*4)+2]` term made every
-    // third-species central beat trivially exempt — the opposite of the intended gating.
-    // We now check the THREE weak beats (+1,+2,+3) of every third-species note, mirroring
-    // H2_3_..._multiVoice used by the pure 3rd species (which the 3+voice dispatch never calls
-    // for a 5th-species part). isConsonance[j] already excludes the fourth (dissonant vs the
-    // bass). The check is gated on isThirdSpeciesArray[j], so 1st/2nd/4th-species cells
-    // (whole/half/tied notes) are untouched. Like the multi-voice version it forbids leaving a
-    // dissonance by leap, i.e. the nota cambiata can only land on consonant beats (consistent
-    // trade-off across all species).
+    // CENTRAL weak beat (+2), leaving +1 and +3 free to carry a leapt-to dissonance; and the
+    // `|| isThirdSpeciesArray[(i*4)+2]` term made every third-species central beat trivially
+    // exempt. We now check the THREE weak beats (+1,+2,+3) of every third-species note,
+    // mirroring H2_3_..._multiVoice used by the pure 3rd species. The check is gated on
+    // isThirdSpeciesArray[j] so 1st/2nd/4th-species cells (whole/half/tied notes) are untouched.
     if (activeConstraints[SP5_H6]) {
         for(int i = 0; i < isDiminution.size(); i++){
             for(int k = 1; k <= 3; k++){

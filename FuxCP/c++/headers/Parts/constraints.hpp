@@ -56,6 +56,7 @@ void H2_2_arsisHarmoniesCannotBeDissonant(Home home, Part* part);
 
 void H2_3_dissonanceImpliesDiminution(Home home, Part* part);
 
+// [Claude Code]
 /**
  * Extension of H2_2 for compositions with 3 or more voices.
  * The base H2_2 only checks the arsis against the lowest stratum, so dissonances
@@ -65,6 +66,7 @@ void H2_3_dissonanceImpliesDiminution(Home home, Part* part);
  */
 void H2_2_arsisHarmoniesCannotBeDissonant_multiVoice(Home home, Part* secondSpPart, vector<Part*> otherVoices);
 
+// [Claude Code]
 /**
  * Extension of H2_3 for 3+ voices, 3rd species. Checks all three weak beats (+1/+2/+3)
  * of each measure against every other voice's strong beat. A weak beat may be dissonant
@@ -72,6 +74,7 @@ void H2_2_arsisHarmoniesCannotBeDissonant_multiVoice(Home home, Part* secondSpPa
  */
 void H2_3_dissonanceImpliesDiminution_multiVoice(Home home, Part* thirdSpPart, vector<Part*> otherVoices);
 
+// [Claude Code]
 /**
  * MANDATORY tonal rule (Bitsch §59). A disjunct weak-beat note of a 2nd/3rd-species voice
  * must belong to the harmony of its half-measure (pitch classes of the voices' structural

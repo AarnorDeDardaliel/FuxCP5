@@ -140,6 +140,7 @@ static int strongBeatIndex(Part* voice, int i){
     return (voice->getSpecies() == CANTUS_FIRMUS) ? i : i*4;
 }
 
+// [Claude Code]
 void H2_2_arsisHarmoniesCannotBeDissonant_multiVoice(Home home, Part* secondSpPart, vector<Part*> otherVoices){
     // h_intervals stored on each Part are computed only against the lowest stratum.
     // In 3+ voice settings, the dissonance between the 2nd-species arsis and any
@@ -160,6 +161,7 @@ void H2_2_arsisHarmoniesCannotBeDissonant_multiVoice(Home home, Part* secondSpPa
     }
 }
 
+// [Claude Code]
 void H2_3_dissonanceImpliesDiminution_multiVoice(Home home, Part* thirdSpPart, vector<Part*> otherVoices){
     // 3rd species has 4 notes per measure: 1 strong beat (i*4) + 3 weak beats (i*4+1,+2,+3).
     // The base H2_3 only checks the central weak beat (+2) against the bass. Here we check
@@ -195,6 +197,7 @@ static int resolutionBeatIndex(Part* voice, int i){
     return (voice->getSpecies() == FOURTH_SPECIES) ? i*4+2 : strongBeatIndex(voice, i);
 }
 
+// [Claude Code]
 void H2_4_chordMembershipOnDisjunctWeakBeats(Home home, Part* sp, vector<Part*> allVoices){
     // MANDATORY tonal rule (Bitsch §59). A disjunct weak-beat note must belong to the
     // harmony of its half-measure. The harmony is the IMPLIED DIATONIC TRIAD: the

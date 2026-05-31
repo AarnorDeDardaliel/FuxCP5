@@ -1,3 +1,4 @@
+// [Claude Code]
 // ConfigLoader.cpp
 // Implémentation du chargement des CSV de configuration.
 

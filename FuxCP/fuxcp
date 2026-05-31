@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# [Claude Code]
 # =============================================================
 # fuxcp — interface CLI interactive pour la génération de contrepoints.
 #

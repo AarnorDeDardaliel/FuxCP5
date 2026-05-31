@@ -5012,26 +5012,22 @@ void FuxTest::test_gen_custom(){ // Generic tests
 }
 
 void FuxTest::test_gen_classic(){
-    cout << "===== test generation classic =====" << endl; 
+    cout << "===== test generation classic =====" << endl;
     test_gen_2v_1sp();
-    test_gen_2v_2sp(); // super long à partir de ~30 itérations
-    test_gen_2v_3sp(); // super long à partir de ~30 itérations
-    // test_gen_2v_4sp(); // super long à partir de ~20 itérations
-    test_gen_3v_1sp(); // super long à partir de ~100 itérations
-    test_gen_3v_2sp(); // super long à partir de ~700 itérations
-    test_gen_3v_3sp(); // super long à partir de ~5000 itérations
-    // test_gen_3v_4sp(); // super long à partir de ??
-    test_gen_4v_1sp(); // super long à partir de ~15000 itérations
-    test_gen_4v_2sp(); // super long à partir de ~50000 itérations
-    // test_gen_4v_3sp(); // super long à partir de ~2000 itérations
-    // test_gen_4v_4sp(); // super long à partir de ??
+    test_gen_2v_2sp();
+    test_gen_2v_3sp();
+    test_gen_3v_1sp();
+    test_gen_3v_2sp();
+    test_gen_3v_3sp();
+    test_gen_4v_1sp();
+    test_gen_4v_2sp();
 }
 
 void FuxTest::test_gen_multi(){
     cout << "===== test generation full sp =====" << endl;
-    test_gen_3v_2sp_2sp(); // super long à partir de ~1200 itérations
-    test_gen_3v_3sp_3sp(); // super long à partir de ~5500 itérations
-    test_gen_4v_2sp_2sp_2sp(); // super long à partir de ~20000 itérations
+    test_gen_3v_2sp_2sp();
+    test_gen_3v_3sp_3sp();
+    test_gen_4v_2sp_2sp_2sp();
 }
 
 void FuxTest::test_gen_all(){

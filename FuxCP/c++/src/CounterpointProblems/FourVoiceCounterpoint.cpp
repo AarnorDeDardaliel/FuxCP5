@@ -105,7 +105,8 @@ FourVoiceCounterpoint::FourVoiceCounterpoint(vector<int> cf, vector<Species> sp,
         }
     }
 
-    // H2 extended (Fux multi-voice rule): a disjunct weak beat must be consonant with
+    // [Claude Code]
+    // H2 extended (multi-voice rule): a disjunct weak beat must be consonant with
     // every other voice's strong beat, not only the lowest stratum. See constraints.cpp.
     for (Part* p : parts) {
         if (activeConstraints[SP2_2H2] && p->getSpecies() == SECOND_SPECIES) {
@@ -192,7 +193,7 @@ FourVoiceCounterpoint::FourVoiceCounterpoint(vector<int> cf, vector<Species> sp,
     
     // Branch on each voice in order of complexity.
     // Dispatched through globals (g_solution_var_sel / g_solution_val_sel) so
-    // SolverBench can swap heuristics without recompiling. Defaults are
+    // callers can swap heuristics without recompiling. Defaults are
     // AFC_MAX + VAL_RND, matching the 2-voice production branching.
     for(const auto& voice : voicesBySize) {
         branch_solution_array_dynamic(*this, voice.second->getBranchingNotes());

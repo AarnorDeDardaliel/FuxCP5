@@ -1,26 +1,9 @@
+// [Claude Code]
 // =====================================================================
-// GenerateCounterpoint.cpp — point d'entrée unifié de génération.
-// Format aligné sur Generations.cpp : utilise GenerationCase + bench BAB
-// séparé. Toutes les données autrefois hardcodées (registre CF, presets de
-// paramètres) sont chargées depuis FuxCP/config/*.csv.
-//
-// Usage CLI :
-//   ./GenerateCounterpoint <nb_voix> <especes...> [options]
-//
-// Modes spéciaux :
-//   ./GenerateCounterpoint --list-cf
-//   ./GenerateCounterpoint --list-presets
-//
-// Options :
-//   --cf-notes CF_NOTES (no default, format is : 60,62,65,64,67,65,64,62,60 ),
-//   -c CF_ID            (défaut : 1)
-//   --preset NAME       (défaut : default)
-//   -t timeout_ms       (défaut : 300000)
-//   -s stagnation_ms    (défaut : 120000)
-//   -o output_root      (défaut : ../results)
-//   --subdir NAME       (sous-dossier sous output_root)
-//   -m lex|total|mixed  (défaut : lex)
-//   -v vt1,vt2,...      (v_types des voix de contrepoint, séparés par ',')
+// Generations.cpp — moteur de génération de contrepoints.
+// Utilise GenerationCase + bench BAB avec StagnationStop. Toutes les
+// données autrefois hardcodées (registre CF, presets de paramètres) sont
+// chargées depuis FuxCP/config/*.csv.
 // =====================================================================
 
 #include "../headers/Generations.hpp"
