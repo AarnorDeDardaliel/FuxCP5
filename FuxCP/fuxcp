@@ -3,11 +3,10 @@
 # fuxcp — interface CLI interactive pour la génération de contrepoints.
 #
 # Usage : ./fuxcp                   (menu interactif)
-#         ./fuxcp campaign <id>     (lance une campagne directement)
 #         ./fuxcp generate <args>   (forward direct au binaire C++)
-#         ./fuxcp tail              (suit la dernière campagne en arrière-plan)
+#         ./fuxcp tail              (suit la dernière génération en arrière-plan)
 #
-# Tous les paramètres (CF, presets, campagnes) sont lus depuis FuxCP/config/*.csv.
+# Tous les paramètres (CF, presets) sont lus depuis FuxCP/config/*.csv.
 # =============================================================
 
 set -uo pipefail
@@ -52,20 +51,14 @@ ensure_binary() {
 }
 
 ensure_config() {
-    for f in cantus_firmus.csv presets.csv campaigns.csv; do
+    for f in cantus_firmus.csv presets.csv; do
         if [[ ! -f "$CONFIG_DIR/$f" ]]; then
             err "Config manquante : $CONFIG_DIR/$f"; exit 1
         fi
     done
 }
 
-# === Lecture CSV (skip lignes commençant par # et le header) ===
-csv_data() {
-    # $1 = chemin du CSV
-    grep -v '^[[:space:]]*#' "$1" | grep -v '^[[:space:]]*$' | tail -n +2
-}
-
-# === Lister CF / presets / campagnes ===
+# === Lister CF / presets ===
 list_cf() {
     banner "Cantus Firmus disponibles"
     "$BIN" --list-cf
@@ -74,11 +67,6 @@ list_cf() {
 list_presets() {
     banner "Presets disponibles"
     "$BIN" --list-presets
-}
-
-list_campaigns() {
-    banner "Campagnes disponibles"
-    "$BIN" --list-campaigns
 }
 
 # === Génération précise (interactive) ===
@@ -127,64 +115,9 @@ run_precise() {
     "${cmd[@]}" 2>&1 | tee "$log_file"
 }
 
-# === Lancer une campagne ===
-run_campaign() {
-    local camp_id="${1:-}"
-    if [[ -z "$camp_id" ]]; then
-        list_campaigns
-        echo
-        read -rp "ID de campagne : " camp_id
-    fi
-    if [[ -z "$camp_id" ]]; then err "Aucun id fourni"; return 1; fi
-
-    log_file="$LOGS_DIR/campagne_${camp_id}_$(date +%Y%m%d_%H%M%S).log"
-    pid_file="$LOGS_DIR/campagne_${camp_id}.pid"
-    inf "Lancement campagne '$camp_id'"
-    inf "Log : $log_file"
-
-    echo "Mode d'objectif (override pour toute la campagne) :"
-    echo "  lex   = lexicographique par priorité (défaut, recommandé)"
-    echo "  total = somme globale (toutes contraintes au même poids)"
-    echo "  mixed = lex pondéré + somme globale"
-    echo "  pond = lex pondéré"
-    read -rp "Mode (lex/total/mixed/pond) [lex] : " obj
-    obj="${obj:-lex}"
-
-    read -rp "Lancer en arrière-plan ? [O/n] : " bg
-    bg="${bg:-O}"
-    if [[ "${bg^^}" == "O" ]]; then
-        nohup "$BIN" --campaign "$camp_id" -m "$obj" > "$log_file" 2>&1 &
-        echo $! > "$pid_file"
-        ok "Lancée en arrière-plan, PID=$(cat "$pid_file")"
-        echo "  Suivi : tail -f $log_file"
-        echo "  Stop  : kill $(cat "$pid_file")"
-    else
-        "$BIN" --campaign "$camp_id" -m "$obj" 2>&1 | tee "$log_file"
-    fi
-}
-
-# === Génération classique en masse (campaign_id "classique_2v" + autres) ===
-run_classical_mass() {
-    banner "Génération classique en masse"
-    echo "Choisir une campagne classique :"
-    echo "  1) classique_2v   (5 CF × 5 espèces, 2 voix)"
-    echo "  2) test_gammes    (5 CF × 5 espèces × 3 nb_voix)"
-    echo "  3) demo_rapide    (1 CF, 30s, démo)"
-    echo "  4) (autre id)"
-    read -rp "Choix [1] : " ch
-    ch="${ch:-1}"
-    case "$ch" in
-        1) run_campaign "classique_2v" ;;
-        2) run_campaign "test_gammes" ;;
-        3) run_campaign "demo_rapide" ;;
-        4) run_campaign "" ;;
-        *) err "Choix invalide" ;;
-    esac
-}
-
-# === Surveiller une campagne en cours ===
+# === Surveiller une génération en cours ===
 monitor() {
-    banner "Surveillance des campagnes"
+    banner "Surveillance des générations"
     echo "${C_BOLD}Processus GenerateCounterpoint actifs :${C_OFF}"
     if pgrep -af GenerateCounterpoint > /dev/null; then
         pgrep -af GenerateCounterpoint
@@ -192,8 +125,8 @@ monitor() {
         echo "  ${C_DIM}(aucun)${C_OFF}"
     fi
     echo
-    echo "${C_BOLD}Dernier log de campagne :${C_OFF}"
-    last_log="$(ls -1t "$LOGS_DIR"/campagne_*.log 2>/dev/null | head -n 1 || true)"
+    echo "${C_BOLD}Dernier log :${C_OFF}"
+    last_log="$(ls -1t "$LOGS_DIR"/*.log 2>/dev/null | head -n 1 || true)"
     if [[ -z "$last_log" ]]; then
         echo "  ${C_DIM}(aucun log dans $LOGS_DIR)${C_OFF}"
         return 0
@@ -293,29 +226,23 @@ main_menu() {
         echo "Binaire       : ${C_DIM}$BIN${C_OFF}"
         echo
         echo "  1) Génération précise (CF + voix + espèces + preset interactif)"
-        echo "  2) Lancer une campagne (sélection dans campaigns.csv)"
-        echo "  3) Génération classique en masse"
-        echo "  4) Surveiller une campagne en cours (tail/grep/processus)"
-        echo "  5) Explorer les résultats (txt/csv/midi)"
-        echo "  6) Inspecter les logs"
-        echo "  7) Lister CF disponibles"
-        echo "  8) Lister presets"
-        echo "  9) Lister campagnes"
-        echo " 10) Recompiler le binaire"
+        echo "  2) Surveiller une génération en cours (tail/grep/processus)"
+        echo "  3) Explorer les résultats (txt/csv/midi)"
+        echo "  4) Inspecter les logs"
+        echo "  5) Lister CF disponibles"
+        echo "  6) Lister presets"
+        echo "  7) Recompiler le binaire"
         echo "  0) Quitter"
         echo
         read -rp "Choix : " ch
         case "$ch" in
             1)  run_precise ;;
-            2)  run_campaign "" ;;
-            3)  run_classical_mass ;;
-            4)  monitor ;;
-            5)  explore_results ;;
-            6)  inspect_logs ;;
-            7)  list_cf ;;
-            8)  list_presets ;;
-            9)  list_campaigns ;;
-            10) (cd "$CPP_DIR" && make compile_generate_counterpoint) ;;
+            2)  monitor ;;
+            3)  explore_results ;;
+            4)  inspect_logs ;;
+            5)  list_cf ;;
+            6)  list_presets ;;
+            7)  (cd "$CPP_DIR" && make compile_generate_counterpoint) ;;
             0)  exit 0 ;;
             *)  err "Choix invalide" ;;
         esac
@@ -329,15 +256,13 @@ ensure_config
 
 case "${1:-}" in
     "")           ensure_binary; main_menu ;;
-    campaign)     ensure_binary; run_campaign "${2:-}" ;;
     generate)     ensure_binary; shift; "$BIN" "$@" ;;
     tail)         last="$(ls -1t "$LOGS_DIR"/*.log 2>/dev/null | head -n1 || true)"
                   [[ -n "$last" ]] && tail -f "$last" || err "Aucun log" ;;
     list-cf)      ensure_binary; list_cf ;;
     list-presets) ensure_binary; list_presets ;;
-    list-camps)   ensure_binary; list_campaigns ;;
     -h|--help|help)
-        echo "Usage : $0 [campaign <id> | generate <args> | tail | list-cf | list-presets | list-camps]"
+        echo "Usage : $0 [generate <args> | tail | list-cf | list-presets]"
         echo "        (sans argument = menu interactif)" ;;
     *)            err "Commande inconnue : $1"; exit 1 ;;
 esac

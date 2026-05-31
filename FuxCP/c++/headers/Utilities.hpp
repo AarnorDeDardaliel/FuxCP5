@@ -687,9 +687,8 @@ vector<int> createRangeVector(int from, int to, int multiplier);
 /* ================================================
  *         DYNAMIC BRANCHING SELECTORS
  * ================================================
- * Exposed for SolverBench / branching campaign skill: the solutionArray
- * branching heuristic in TwoVoiceCounterpoint reads these globals at
- * construction time, so a benchmark can swap them between runs without
+ * The solutionArray branching heuristic in TwoVoiceCounterpoint reads
+ * these globals at construction time, so callers can swap them without
  * recompiling. Defaults reproduce the production setting
  * (AFC_MAX + VAL_RND(1U) + seed 1) so any other binary keeps its current
  * behaviour as long as it does not touch these.

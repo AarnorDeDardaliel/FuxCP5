@@ -22,8 +22,7 @@
 //
 // Not handled here:
 //   - command-line parsing
-//   - campaign execution
-//   - listing presets / cantus firmi / campaigns
+//   - listing presets / cantus firmi
 //   - advanced testing workflows
 //
 // Notes:

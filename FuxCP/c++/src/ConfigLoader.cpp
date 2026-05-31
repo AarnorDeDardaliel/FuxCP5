@@ -124,25 +124,3 @@ map<string, PresetEntry> ConfigLoader::load_presets(const string& dir) {
     return out;
 }
 
-// ---------------- Campaigns ----------------
-
-vector<CampaignRow> ConfigLoader::load_campaigns(const string& dir) {
-    vector<CampaignRow> out;
-    auto rows = read_csv_rows(dir + "/campaigns.csv");
-    for (auto& r : rows) {
-        if (r.size() < 10) continue;
-        CampaignRow c;
-        c.campaign_id   = trim(r[0]);
-        c.cf_ids        = parse_int_list(r[1], '+');
-        c.n_voices      = atoi(trim(r[2]).c_str());
-        c.species       = parse_int_list(r[3], '+');
-        c.v_types       = parse_int_list(r[4], '+');
-        c.preset        = trim(r[5]);
-        c.timeout_ms    = atoi(trim(r[6]).c_str());
-        c.stagnation_ms = atoi(trim(r[7]).c_str());
-        c.output_subdir = trim(r[8]);
-        c.description   = trim(r[9]);
-        out.push_back(c);
-    }
-    return out;
-}

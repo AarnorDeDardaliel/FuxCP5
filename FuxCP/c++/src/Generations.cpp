@@ -2,16 +2,14 @@
 // GenerateCounterpoint.cpp — point d'entrée unifié de génération.
 // Format aligné sur Generations.cpp : utilise GenerationCase + bench BAB
 // séparé. Toutes les données autrefois hardcodées (registre CF, presets de
-// paramètres, campagnes) sont chargées depuis FuxCP/config/*.csv.
+// paramètres) sont chargées depuis FuxCP/config/*.csv.
 //
 // Usage CLI :
 //   ./GenerateCounterpoint <nb_voix> <especes...> [options]
 //
 // Modes spéciaux :
-//   ./GenerateCounterpoint --campaign <id>   (lance toutes les lignes)
 //   ./GenerateCounterpoint --list-cf
 //   ./GenerateCounterpoint --list-presets
-//   ./GenerateCounterpoint --list-campaigns
 //
 // Options :
 //   --cf-notes CF_NOTES (no default, format is : 60,62,65,64,67,65,64,62,60 ),

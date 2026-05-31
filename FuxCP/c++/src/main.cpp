@@ -25,23 +25,6 @@ static void cmd_list_presets(const map<string, PresetEntry>& presets) {
     }
 }
 
-static void cmd_list_campaigns(const vector<CampaignRow>& camps) {
-    cout << "Campagnes disponibles :" << endl;
-    map<string,int> counts;
-    map<string,string> first_desc;
-    for (auto& c : camps) {
-        counts[c.campaign_id]++;
-        if (first_desc.find(c.campaign_id) == first_desc.end()) {
-            first_desc[c.campaign_id] = c.description;
-        }
-    }
-    for (auto& kv : counts) {
-        cout << "  " << setw(20) << left << kv.first
-             << " (" << kv.second << " configs) - " << first_desc[kv.first] << endl;
-    }
-}
-
-
 // =============================================================
 // CLI
 // =============================================================
@@ -61,14 +44,12 @@ struct CliArgs {
     bool use_preset_cf   = false;
     string preset_name   = "default";
 
-    string campaign_id;
-    bool list_cf = false, list_presets = false, list_campaigns = false;
+    bool list_cf = false, list_presets = false;
 };
 
 static void print_usage() {
     cout << "Usage : ./GenerateCounterpoint <nb_voix> <especes...> [options]\n"
-         << "        ./GenerateCounterpoint --campaign <id>\n"
-         << "        ./GenerateCounterpoint --list-cf | --list-presets | --list-campaigns\n\n"
+         << "        ./GenerateCounterpoint --list-cf | --list-presets\n\n"
          << "Options :\n"
          << "  --cf-notes n1,n2,... raw cantus firmus MIDI notes\n"
          << "  -c CF_ID            id du cantus firmus (cf cantus_firmus.csv)\n"
@@ -87,8 +68,6 @@ static bool parse_cli(int argc, char* argv[], CliArgs& a) {
         string s = argv[i];
         if (s == "--list-cf")        { a.list_cf        = true; return true; }
         if (s == "--list-presets")   { a.list_presets   = true; return true; }
-        if (s == "--list-campaigns") { a.list_campaigns = true; return true; }
-        if (s == "--campaign" && i + 1 < argc) { a.campaign_id = argv[i+1]; return true; }
     }
     if (argc < 3) { print_usage(); return false; }
     a.nb_voix = atoi(argv[1]);
@@ -161,25 +140,6 @@ static GenerationCase build_gc_from_cli(const CliArgs& a) {
     return gc;
 }
 
-static GenerationCase build_gc_from_campaign(const CampaignRow& row, int cf_id, const string& output_root,
-                                      ObjectiveMode obj_override) {
-    GenerationCase gc;
-    gc.cf_id          = cf_id;
-    gc.use_preset_cf = true;
-    gc.n_voices       = row.n_voices;
-    gc.preset_name    = row.preset.empty() ? "default" : row.preset;
-    gc.timeout_ms     = row.timeout_ms;
-    gc.stagnation_ms  = row.stagnation_ms;
-    gc.output_root    = output_root;
-    gc.output_subdir  = row.output_subdir;
-    gc.obj_mode       = obj_override;
-    for (int s : row.species) gc.spList.push_back(int_to_species(s));
-    if (!row.v_types.empty()) gc.v_type = row.v_types;
-    else gc.v_type = vector<int>(row.n_voices - 1, 0);
-    return gc;
-}
-
-
 // =============================================================
 // main
 // =============================================================
@@ -188,42 +148,13 @@ int main(int argc, char* argv[]) {
     string config_dir = ConfigLoader::find_config_dir();
     auto cfs      = ConfigLoader::load_cantus_firmus(config_dir);
     auto presets  = ConfigLoader::load_presets(config_dir);
-    auto camps    = ConfigLoader::load_campaigns(config_dir);
 
     CliArgs a;
     if (!parse_cli(argc, argv, a)) return 1;
 
     if (a.list_cf)        { cmd_list_cf(cfs); return 0; }
     if (a.list_presets)   { cmd_list_presets(presets); return 0; }
-    if (a.list_campaigns) { cmd_list_campaigns(camps); return 0; }
 
-    // === Mode campagne ===
-    if (!a.campaign_id.empty()) {
-        vector<CampaignRow> selected;
-        for (auto& c : camps) if (c.campaign_id == a.campaign_id) selected.push_back(c);
-        if (selected.empty()) {
-            cerr << "Aucune ligne pour la campagne : " << a.campaign_id << endl;
-            return 1;
-        }
-        cout << "=== Campagne " << a.campaign_id << " : " << selected.size()
-             << " configs × CF associés ===" << endl;
-        int total = 0, done = 0;
-        for (auto& row : selected) total += row.cf_ids.size();
-        for (auto& row : selected) {
-            for (int cf_id : row.cf_ids) {
-                done++;
-                cout << "\n[" << done << "/" << total << "] " << row.description << endl;
-                GenerationCase gc = build_gc_from_campaign(row, cf_id, a.output_root, a.obj_mode);
-                if (!resolve_cf(gc))      { cerr << "  CF non résolu, skip." << endl; continue; }
-                if (!apply_preset(gc)){ cerr << "  Preset non résolu, skip." << endl; continue; }
-                GenerationResult res = Generations::run_generation_case(gc, true, true);
-            }
-        }
-        cout << "\n=== Campagne terminée (" << done << "/" << total << ") ===" << endl;
-        return 0;
-    }
-
-    // === Mode unique ===
     GenerationCase gc = build_gc_from_cli(a);
     cout << gc.spList.size() << endl;
     if (!resolve_cf(gc))       return 1;

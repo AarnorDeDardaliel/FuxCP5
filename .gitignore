@@ -55,4 +55,10 @@ Latex/
 # Accept all src files and specific results
 !FuxCP/c++/src/**
 !results_karim/**
-!FuxCP/results/
+
+# Untracked (kept on disk but excluded from repo annex)
+FuxCP/results/
+FuxCP/config/ReferenceData/
+FuxCP/config/branching_campaigns/
+FuxCP/config/campaigns.csv
+FuxCP/c++/scripts/*.sh
