@@ -202,7 +202,7 @@ class Part : public Voice {
         vector<int> getDomain();
 
         /// Diatonic scale of the key (all MIDI notes of the detected scale). Used by
-        /// chordMembershipOnDisjunctWeakBeats to build the implied diatonic triads.
+        /// H2_4_chordMembershipOnDisjunctWeakBeats to build the implied diatonic triads.
         vector<int> getScale() { return scale; }
 
         IntVarArray getOffCostArray();
