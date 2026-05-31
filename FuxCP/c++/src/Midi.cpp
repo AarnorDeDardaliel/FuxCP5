@@ -71,7 +71,6 @@ int branchingNotesSize(Species sp, int cfSize) {
     }
 }
 
-// Ajoute les événements MIDI d'une voix à la liste
 static void addVoiceEvents(std::vector<MidiEvent>& events,
                            const std::vector<int>& raw_notes,
                            Species species,
@@ -104,13 +103,11 @@ static void addVoiceEvents(std::vector<MidiEvent>& events,
             events.push_back({start, noteOn, (uint8_t)notes[i], velocity});
             events.push_back({start + cpDur, noteOff, (uint8_t)notes[i], 0});
         }
-        // Avant-dernière note plus courte
         start = i * cpDur + cpDur / 2;
         events.push_back({start, noteOn, (uint8_t)notes[i], velocity});
         events.push_back({start + cpDur/2, noteOff, (uint8_t)notes[i], 0});
         i++;
 
-        // Dernière note sans décalage
         start = i * cpDur;
         events.push_back({start, noteOn, (uint8_t)notes[i], velocity});
         events.push_back({start + rondeDur, noteOff, (uint8_t)notes[i], 0});
@@ -121,7 +118,6 @@ static void addVoiceEvents(std::vector<MidiEvent>& events,
             events.push_back({start, noteOn, (uint8_t)notes[i], velocity});
             events.push_back({start + cpDur, noteOff, (uint8_t)notes[i], 0});
         }
-        // Last note (always rond)
         size_t i = notes.size()-1;
         start = i * cpDur;
         events.push_back({start, noteOn, (uint8_t)notes[i], velocity});
@@ -129,7 +125,6 @@ static void addVoiceEvents(std::vector<MidiEvent>& events,
     }
 }
 
-// Construit les données binaires d'une piste MIDI à partir de ses événements
 static std::vector<uint8_t> buildTrackData(std::vector<MidiEvent>& events) {
     std::sort(events.begin(), events.end());
 
@@ -144,13 +139,11 @@ static std::vector<uint8_t> buildTrackData(std::vector<MidiEvent>& events) {
         lastTick = e.tick;
     }
 
-    // End of Track
     trackData.push_back(0x00);
     trackData.push_back(0xFF); trackData.push_back(0x2F); trackData.push_back(0x00);
     return trackData;
 }
 
-// Écrit un fichier MIDI Format 1 (une piste par voix)
 static void writeMidiFile(const std::string& filename,
                           std::vector<std::vector<MidiEvent>>& tracks,
                           uint16_t PPQ) {
@@ -183,13 +176,10 @@ void saveMidiMultiVoice(const std::string& filename,
     const uint32_t PPQ = 480;
     uint32_t rondeDur = PPQ * 4;
 
-    // Une piste par voix : piste 0 = CF, pistes 1..n = contrepoint
     std::vector<std::vector<MidiEvent>> tracks(1 + std::min(voices.size(), (size_t)3));
 
-    // Piste 0 : Cantus Firmus
     addVoiceEvents(tracks[0], cantusFirmus, CANTUS_FIRMUS, 0, 64, rondeDur);
 
-    // Pistes 1, 2, 3 : voix de contrepoint
     for (size_t v = 0; v < voices.size() && v < 3; ++v) {
         addVoiceEvents(tracks[v + 1], voices[v].first, voices[v].second,
                        (uint8_t)(v + 1), 80, rondeDur);
@@ -208,10 +198,8 @@ void saveMidi(const std::string& filename,
 
     std::vector<std::vector<MidiEvent>> tracks(2);
 
-    // Piste 0 : Cantus Firmus
     addVoiceEvents(tracks[0], cantusFirmus, CANTUS_FIRMUS, 0, 64, rondeDur);
 
-    // Piste 1 : Contrepoint
     addVoiceEvents(tracks[1], raw_solution, species, 1, 80, rondeDur);
 
     writeMidiFile(filename, tracks, PPQ);
