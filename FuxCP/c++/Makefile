@@ -105,6 +105,7 @@ compile_for_debug:
 	@mkdir -p $(COMPILED_DIR)
 	$(CXX) $(CXXFLAGS_DEBUG) src/Tests/main.cpp src/Tests/fuxTest.cpp src/Tests/figureTests.cpp $(SHARED_SOURCES) -o $(COMPILED_DIR)/Main $(LIBS_MINIMAL)
 
+# Exemple (for test_gen_custom in fuxTest.cpp) : make test name=gen
 test: compile_for_debug
 	$(COMPILED_DIR)/Main $(name)
 

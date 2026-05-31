@@ -61,6 +61,15 @@ static void mkdir_p(const string& path) {
     (void)r;
 }
 
+static string csv_escape(const string& s) {
+    string out = "\"";
+    for (char c : s) {
+        if (c == '"') out += "\"\"";
+        else out += c;
+    }
+    out += "\"";
+    return out;
+}
 
 // =============================================================
 // Construction d'un GenerationCase à partir des CSV + arguments
@@ -228,7 +237,7 @@ static void write_csv_report(const string& path, const GenerationCase& gc,
          "temps_derniere_amelioration_ms,nb_solutions,nb_ameliorations,cout_final,"
          "terminaison,noeuds,echecs,redemarrages,propagations,profondeur_max\n";
     if (gc.use_preset_cf) c << gc.cf_id ;
-    else                  c << "/" << "\n";
+    else                  c << "/";
     c << "," << gc.cf_name << "," << gc.preset_name << ","
       << gc.borrow_mode << "," << gc.n_voices << ",";
     c << "1";
@@ -276,6 +285,23 @@ static void write_csv_report(const string& path, const GenerationCase& gc,
         }
     }
     c.close();
+}
+
+static void write_csv_intermediate_data(const string& path, string name, int iteration, int duration, string costs, IntVarArray solution) {
+    const bool file_exists = static_cast<bool>(ifstream(path));
+    ofstream out(path, ios::app);
+
+    if (!file_exists) {
+        out << "name,iteration,duration(ms),costs,solution\n";
+    }
+
+    out << name << ","
+        << iteration << ","
+        << duration << ","
+        << csv_escape(costs) << ","
+        << csv_escape(int_var_array_to_string(solution));
+    
+    out << "\n";
 }
 
 static void write_error_txt(const string& path, const GenerationCase& gc,
@@ -358,6 +384,13 @@ static GenerationResult run_bench(CounterpointProblem* problem, GenerationCase& 
                     << " | " << cost_label(gc.obj_mode) << "="
                     << fixed << setprecision(1) << cost << "]" << endl;
             }
+            // Log progressively data (in case of a crash, or for testing)
+            string species_tag = species_tag_for(gc);
+            string cf_prefix = gc.use_preset_cf ? ("cf" + to_string(gc.cf_id)) : gc.cf_name;
+            string default_filenames = cf_prefix + "_" + species_tag;
+            
+            string filepath = gc.output_root + "/" + gc.output_subdir + "/log_intermediate_data.csv";
+            write_csv_intermediate_data(filepath, default_filenames, iteration, now, lex, s->getSolutionArray());
         }
         
         // Logging progressif des itérations (affiche tous les 1, 5, 10, 20, 50, 100, 500, 1000...)
@@ -365,10 +398,8 @@ static GenerationResult run_bench(CounterpointProblem* problem, GenerationCase& 
             // Log even without verbose to check the algorithm is progressing
             cout << "    -> Itération " << iteration << " | t=" 
             << fixed << setprecision(0) << now << "ms | meilleur="
-            << fixed << setprecision(1) << result.best_cost << endl;            
+            << fixed << setprecision(1) << result.best_cost << endl;
         }
-
-
         result.solutions_log.emplace_back(result.nb_solutions, now, cost, lex);
 
         if (result.nb_solutions == 1) result.ms_first_solution = now;

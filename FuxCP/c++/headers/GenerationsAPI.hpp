@@ -54,9 +54,11 @@ struct GenerationInput {
     string preset_name = "";
 
     // Maximum total runtime of the search, in milliseconds.
+    // Setting a value of 0 disables timeout max
     int timeout_ms = -1;
 
     // Maximum allowed stagnation time, in milliseconds. Search stops if no improvement is found during this delay.
+    // Setting a value of 0 disables stagnation
     int stagnation_ms = -1;
 
     // Objective mode used by the solver.
