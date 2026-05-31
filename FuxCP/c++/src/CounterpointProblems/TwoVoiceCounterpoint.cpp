@@ -94,7 +94,7 @@ TwoVoiceCounterpoint::TwoVoiceCounterpoint(vector<int> cf, Species sp, int v_typ
     // Previously applied only in 3v/4v; extending it to 2 voices also closes the gap
     // where 3rd-species weak beats +1/+3 were left unchecked for consonance.
     if (counterpoint_1->getSpecies() == SECOND_SPECIES || counterpoint_1->getSpecies() == THIRD_SPECIES) {
-        chordMembershipOnDisjunctWeakBeats(*this, counterpoint_1, parts);
+        H2_4_chordMembershipOnDisjunctWeakBeats(*this, counterpoint_1, parts);
     }
 
     // Consonance on the three weak beats of 2-voice 3rd species: reuse the proven multi-voice
