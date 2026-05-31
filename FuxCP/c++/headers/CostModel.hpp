@@ -52,12 +52,24 @@ std::vector<double> build_linear_shape_desc(int n); // s décroît linéairement
 std::vector<double> build_inverted_v_shape(int n); // s fait 0->1->0 en formant un ∧
 std::vector<double> build_v_shape(int n); // s fait 1->0->1 en formant un ∨
 std::vector<double> build_M_shape(int n); // s fait 0->1->0->1->0 en formant un M
+std::vector<double> build_step_shape(int n); // s fait 0->1 avec un escalier au milieu
+std::vector<double> build_step_desc_shape(int n); // s fait 1->0 avec un escalier au milieu
 
 
 // =====================================================================
-// TYPE DE FONCTION DE GROUPE : Prend s in [0,1], retourne un vecteur de coûts (un par coût du groupe)
+// TYPE DE FONCTION DE GROUPE : Prend s dans [0,1], retourne un vecteur de coûts (un par coût du groupe)
 // =====================================================================
 using CostGroupFn = std::function<std::vector<int>(double)>;
+
+
+// =====================================================================
+// FONCTIONS DE GROUPE PRÉDÉFINIES
+// L'utilisateur peut en créer d'autres avec la même signature :
+// std::vector<int>(double s)
+// =====================================================================
+std::vector<int> steps1(double s);       // coûts mélodiques
+std::vector<int> steps2(double s);       // coûts mélodiques
+std::vector<int> harmo(double s);       // fifth + octave
 
 
 // =====================================================================
@@ -65,8 +77,10 @@ using CostGroupFn = std::function<std::vector<int>(double)>;
 //
 // Un groupe associe :
 //   - une liste de coûts (indices CostIndex)
-//   - une fonction f(s) -> {cout1, cout2, ...}
-//   - une shape positionnelle : s varie selon la position dans la pièce
+//   - une fonction f(s) par défaut -> {cout1, cout2, ...}
+//   - une liste de fonctions par voix
+//   - une shape positionnelle par défaut : s varie selon la position dans la pièce
+//   - une liste de shapes par voix
 //
 // Exemple : grouper fifth et octave avec harmo(s) et une shape en V inversé
 //   group.costIndices = {COST_FIFTH, COST_OCTAVE}
@@ -75,9 +89,10 @@ using CostGroupFn = std::function<std::vector<int>(double)>;
 // =====================================================================
 struct CostGroup {
     std::vector<int> costIndices;  // indices des coûts dans ce groupe
-    CostGroupFn      fn;           // fonction qui en recevant s en entrée associe des coûts à ce groupe
-    std::vector<std::vector<double>> shapePerVoice; // shape positionnelle par voix
-    std::vector<double> defaultShape;     // utilisée si voix non définie
+    CostGroupFn      fn;           // fonction par défaut
+    std::vector<CostGroupFn> fnPerVoice; // fonctions par voix
+    std::vector<double> defaultShape;     // shape par défaut
+    std::vector<std::vector<double>> shapePerVoice; // shapes positionnelles par voix
 
     // Retourne la shape à utiliser pour une voix donnée (shape spécifique ou defaultShape)
     const std::vector<double>& getShapeForVoice(int voiceIndex) const {
@@ -87,11 +102,17 @@ struct CostGroup {
         return defaultShape;
     }
 
-    // Retourne les coûts à la position pos
+    // Retourne la fonction à utiliser pour une voix donnée
+    const CostGroupFn& getFnForVoice(int voiceIndex) const {
+        if (voiceIndex < (int)fnPerVoice.size() && fnPerVoice[voiceIndex])
+            return fnPerVoice[voiceIndex];
+        return fn;
+    }
+
     std::vector<int> getCostsAt(int pos, int voiceIndex = 0) const {
         const auto& shape = getShapeForVoice(voiceIndex);
         double s = (pos >= 0 && pos < (int)shape.size()) ? shape[pos] : 1.0;
-        return fn(s);
+        return getFnForVoice(voiceIndex)(s);  // ← utilise la fonction de la voix
     }
 
     // Retourne le coût du coût costIndex à la position pos
@@ -122,23 +143,29 @@ struct CostModel {
     // Groupes de coûts définis par l'utilisateur
     std::vector<CostGroup> groups;
 
-    // Valeurs par défaut pour chaque coût (si non groupé)
+    // Valeurs par défaut pour chaque coût (si non groupé), attention valeur max du domaine si cout groupé
     std::vector<int> defaultCosts = {
-        4,   // borrow
+        1,   // borrow
         1,   // fifth
         1,   // octave
-        4,   // succ
+        1,   // succ
         1,   // variety
-        2,   // triad
-        8,   // direct
-        2,   // motion (0=contraire, 1=oblique, 2=parallèle — hardcodé)
-        8,   // penult
-        4,   // cambiata
-        2,   // triad3
+        1,   // triad
+        1,   // direct
+        1,   // motion
+        1,   // penult
+        1,   // cambiata
+        1,   // triad3
         1,   // m2
-        8,   // syncopation
-        4    // melodic (géré séparément par steps())
+        1,   // syncopation
+        0    // melodic, géré séparément car comprend plusieurs couts
     };
+
+
+    // penser au triton, 576 = cout maximal du domaine
+    std::vector<int> getMelodicCostsDefault() const {
+        return {1, 1, 1, 576, 1, 1, 1, 1};
+    }
 
     // Ajoute un groupe de coûts au modèle
     void addGroup(CostGroup g) {
@@ -162,7 +189,7 @@ struct CostModel {
     // Retourne le coût à la position pos pour une voix donnée
     // Utilise le groupe si défini, sinon la valeur par défaut
     int getCostAt(int costIndex, int pos, int voiceIndex = 0) const {
-        // Priorité 1 : groupe avec shape explicite pour cette voix
+        //  groupe avec shape explicite pour cette voix
         for (const auto& g : groups) {
             if (voiceIndex < (int)g.shapePerVoice.size() &&
                 !g.shapePerVoice[voiceIndex].empty()) {
@@ -170,7 +197,7 @@ struct CostModel {
                 if (v >= 0) return v;
             }
         }
-        // Priorité 2 : groupe avec defaultShape
+        // groupe avec defaultShape
         for (const auto& g : groups) {
             if (g.shapePerVoice.empty() || voiceIndex >= (int)g.shapePerVoice.size() ||
                 g.shapePerVoice[voiceIndex].empty()) {
@@ -178,7 +205,7 @@ struct CostModel {
                 if (v >= 0) return v;
             }
         }
-        // Priorité 3 : valeur par défaut
+        // valeur par défaut
         if (costIndex >= 0 && costIndex < COST_COUNT)
             return defaultCosts[costIndex];
         return 0;
@@ -200,7 +227,7 @@ struct CostModel {
 
     // Retourne le vecteur complet des coûts d'un groupe à la position pos
     std::vector<int> getGroupCostsAt(int costIndex, int pos, int voiceIndex = 0) const {
-        // Priorité 1 : shape explicite pour cette voix
+        // shape explicite pour cette voix
         for (const auto& g : groups) {
             if (voiceIndex < (int)g.shapePerVoice.size() &&
                 !g.shapePerVoice[voiceIndex].empty()) {
@@ -210,7 +237,7 @@ struct CostModel {
                 }
             }
         }
-        // Priorité 2 : defaultShape
+        // defaultShape
         for (const auto& g : groups) {
             if (g.shapePerVoice.empty() || voiceIndex >= (int)g.shapePerVoice.size() ||
                 g.shapePerVoice[voiceIndex].empty()) {
@@ -242,7 +269,21 @@ struct CostModel {
             getCostAt(COST_VARIETY, pos, voiceIndex),
             getCostAt(COST_TRIAD,   pos, voiceIndex),
             getCostAt(COST_DIRECT,  pos, voiceIndex),
-            0 // non positionnel pour l'instant
+            0 // pas dans vecteur importance (sorte de multiplicateur si une certaine note n'est pas une quinte parfaite)
+        };
+    }
+
+    // retourne le maximum des couts par défaut g_costs
+    std::vector<int> getGeneralCostsMax(int voiceIndex = 0) const {
+        return {
+            defaultCosts[COST_BORROW],
+            defaultCosts[COST_FIFTH],
+            defaultCosts[COST_OCTAVE],
+            defaultCosts[COST_SUCC],
+            defaultCosts[COST_VARIETY],
+            defaultCosts[COST_TRIAD],
+            defaultCosts[COST_DIRECT],
+            0 
         };
     }
 
@@ -252,12 +293,34 @@ struct CostModel {
         return {
             getCostAt(COST_PENULT,      pos, voiceIndex),
             getCostAt(COST_CAMBIATA,    pos, voiceIndex),
-            0,  // mSkipCost — non positionnel pour l'instant
+            0,  // mSkipCost — pas dans vecteur importance, inactif (cout si en 3sp pas de mouvement contraire après un saut)
             getCostAt(COST_TRIAD3,      pos, voiceIndex),
             getCostAt(COST_M2,          pos, voiceIndex),
             getCostAt(COST_SYNCOPATION, pos, voiceIndex),
-            50  // prefSlider — non positionnel pour l'instant
+            50  // prefSlider — pas dans vecteur importance, inactif (curseur entre 0 et 100 en 5sp, 1/2 sp vs 3/4 sp)
         };
+    }
+
+    // retourne le maximum des couts par défaut 
+    std::vector<int> getSpecificCostsMax(int voiceIndex = 0) const {
+        return {
+            defaultCosts[COST_PENULT],
+            defaultCosts[COST_CAMBIATA],
+            0,   // mSkipCost
+            defaultCosts[COST_TRIAD3],
+            defaultCosts[COST_M2],
+            defaultCosts[COST_SYNCOPATION],
+            50   // prefSlider
+        };
+    }
+
+    // Retourne la taille de la shape mélodique pour une voix donnée
+    int getMelodicShapeSize(int voiceIndex) const {
+        for (const auto& g : groups)
+            for (int idx : g.costIndices)
+                if (idx == COST_MELODIC)
+                    return (int)g.getShapeForVoice(voiceIndex).size();
+        return 0;
     }
 };
 
@@ -291,6 +354,11 @@ struct ImportanceVector {
 };
 
 
+
+
+
+
+
 // =====================================================================
 // SHAPE PAR VOIX — shape mélodique différente par voix de contrepoint, plus utilisée, version avant généralisation
 // =====================================================================
@@ -305,14 +373,3 @@ struct MelodicShapeConfig {
         return empty;
     }
 };
-
-// =====================================================================
-// FONCTIONS DE GROUPE PRÉDÉFINIES
-// L'utilisateur peut en créer d'autres avec la même signature :
-// std::vector<int>(double s)
-// =====================================================================
-std::vector<int> steps1(double s);       // coûts mélodiques
-std::vector<int> steps2(double s);       // coûts mélodiques
-std::vector<int> harmo(double s);       // fifth + octave
-std::vector<int> perf_cons(double s);   // succ + direct
-std::vector<int> triad_group(double s); // triad + triad3

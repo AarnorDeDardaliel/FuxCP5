@@ -174,23 +174,25 @@ ThreeVoiceCounterpoint::ThreeVoiceCounterpoint(vector<int> cf, vector<Species> s
     upper_1 = new Stratum(*this, nMeasures, 0, 127, lowest->getNotes(), THREE_VOICES);
     upper_2 = new Stratum(*this, nMeasures, 0, 127, lowest->getNotes(), THREE_VOICES);
     upper_3 = nullptr;
+    std::vector<int> m_costs1 = costModel.isGrouped(COST_MELODIC, 0) ? costModel.getGeneralCostsAt(0, 0) : costModel.getMelodicCostsDefault();
+    std::vector<int> m_costs2 = costModel.isGrouped(COST_MELODIC, 1) ? costModel.getGeneralCostsAt(0, 1) : costModel.getMelodicCostsDefault();
 
     // Dorian Genon — costModel et voiceIndex passés à create_counterpoint
     // Les profils positionnels sont construits dans Part dès la construction
     counterpoint_1 = create_counterpoint(*this, species[0], nMeasures, cf,
         (6 * v_type[0] - 12) + cf[0], (6 * v_type[0] + 12) + cf[0],
         lowest, cantusFirmus, v_type[0],
-        costModel.getGeneralCostsAt(0, 0),
-        costModel.getGeneralCostsAt(0, 0),
-        costModel.getSpecificCostsAt(0, 0),
+        m_costs1,
+        costModel.getGeneralCostsMax(0),
+        costModel.getSpecificCostsMax(0),
         bm, THREE_VOICES, {}, &costModel, 0);  // voiceIndex=0
 
     counterpoint_2 = create_counterpoint(*this, species[1], nMeasures, cf,
         (6 * v_type[1] - 12) + cf[0], (6 * v_type[1] + 12) + cf[0],
         lowest, cantusFirmus, v_type[1],
-        costModel.getGeneralCostsAt(0, 1),
-        costModel.getGeneralCostsAt(0, 1),
-        costModel.getSpecificCostsAt(0, 1),
+        m_costs2,
+        costModel.getGeneralCostsMax(1),
+        costModel.getSpecificCostsMax(1),
         bm, THREE_VOICES, {}, &costModel, 1);  // voiceIndex=1
 
     counterpoint_3 = nullptr;
@@ -315,8 +317,6 @@ void ThreeVoiceCounterpoint::uniteCounterpoints(){
 
 void ThreeVoiceCounterpoint::uniteCosts(){
     //this function takes the costs that are present for each species and some 3v specific costs and adds them together
-    int cp1_idx = 0;
-    int cp2_idx = 0;
     for(int i = 0; i < 14; i++){
         //goes through every possible cost
         string name = importanceNames[i];
@@ -357,14 +357,12 @@ void ThreeVoiceCounterpoint::uniteCosts(){
                 IntVarArgs x(sz);
                 int idx=0;
                 if(cp1_contains){
-                    x[idx] = counterpoint_1->getCosts()[cp1_idx];
-                    idx++;
-                    cp1_idx++;
+                    for(int t = 0; t < counterpoint_1->getCostNames().size(); t++)
+                        if(name==counterpoint_1->getCostNames()[t]){ x[idx++]=counterpoint_1->getCosts()[t]; break; }
                 }
                 if(cp2_contains){
-                    x[idx] = counterpoint_2->getCosts()[cp2_idx];
-                    idx++;
-                    cp2_idx++;
+                    for(int t = 0; t < counterpoint_2->getCostNames().size(); t++)
+                        if(name==counterpoint_2->getCostNames()[t]){ x[idx++]=counterpoint_2->getCosts()[t]; break; }
                 }
                 //sum the cost together if it are present in both counterpoints
                 rel(*this, unitedCosts[i], IRT_EQ, expr(*this, sum(x)));

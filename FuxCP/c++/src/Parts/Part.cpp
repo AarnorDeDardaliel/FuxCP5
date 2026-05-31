@@ -50,7 +50,8 @@ Part::Part(Home home, int nMes, Species sp, vector<int> cf, int lb, int ub, int 
     this->melodicShape = melodicShape;
     if (costModel != nullptr && costModel->isGrouped(COST_MELODIC, voiceIndex)) {
         // Nouvelle API : shape mélodique via CostModel, par voix et par position
-        int nPos = nMes - 1;
+        int nPos = costModel->getMelodicShapeSize(voiceIndex);
+        if (nPos == 0) nPos = nMes - 1;
         secondCostProfile.resize(nPos);
         thirdCostProfile.resize(nPos);
         fourthCostProfile.resize(nPos);
@@ -162,8 +163,8 @@ void Part::buildCostProfiles(const CostModel& model, int voiceIdx, int nPosByMea
     };
 
     buildByNote(COST_BORROW,      borrowCost,      borrowCostProfile);
-    buildByMeasure(COST_FIFTH,       h_fifthCost,     hFifthCostProfile);
-    buildByMeasure(COST_OCTAVE,      h_octaveCost,    hOctaveCostProfile);
+    buildByNote(COST_FIFTH,       h_fifthCost,     hFifthCostProfile);
+    buildByNote(COST_OCTAVE,      h_octaveCost,    hOctaveCostProfile);
     buildByMeasure(COST_SUCC,        succCost,        succCostProfile);
     buildByNote(COST_VARIETY,     varietyCost,     varietyCostProfile);
     buildByMeasure(COST_TRIAD,       triadCost,       triadCostProfile);
@@ -171,7 +172,7 @@ void Part::buildCostProfiles(const CostModel& model, int voiceIdx, int nPosByMea
     buildByMeasure(COST_PENULT,      penultCost,      penultCostProfile);
     buildByMeasure(COST_CAMBIATA,    cambiataCost,    cambiataCostProfile);
     buildByMeasure(COST_TRIAD3,      triad3rdCost,    triad3rdCostProfile);
-    buildByNote(COST_M2,          m2ZeroCost,      m2ZeroCostProfile);
+    buildByMeasure(COST_M2,          m2ZeroCost,      m2ZeroCostProfile);
     buildByMeasure(COST_SYNCOPATION, syncopationCost, syncopationCostProfile);
 }
 

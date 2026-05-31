@@ -20,7 +20,7 @@ enum {
 enum ObjectiveMode {
     OBJECTIVE_LEX,      // ordre lexicographique (actuel)
     OBJECTIVE_MINMAX,   // minimise le pire coût pondéré
-    OBJECTIVE_WEIGHTED  // somme pondérée par (15 - rang)
+    OBJECTIVE_SUMWEIGHTED  // somme pondérée par (15 - rang)
 };
 
 
@@ -150,6 +150,10 @@ public:
 
     void uniteRelaxationCosts();
     IntVarArray getProblemRelaxationCosts(){ return problemRelaxationCosts; }
+
+    vector<string> getUnitedCostNames() { return unitedCostNames; }
+
+    IntVarArray getUnitedCosts() { return unitedCosts; }
 };
 
 

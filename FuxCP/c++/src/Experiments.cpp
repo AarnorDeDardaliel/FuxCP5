@@ -5,7 +5,7 @@
 // S'arrête avec Ctrl+c, ou si l'arbre de recherche est épuisé, ou si le nombre de solutions atteint target_solution.
 // Exporte la dernière solution trouvée en MIDI dans results/experiment.mid
 //
-// aide de chatGPT.com pour réfléchir au moyen de stopper et exporter la solution lorsuqe bloqué pour la solution suivante
+// aide de chatGPT.com pour réfléchir au moyen de stopper et exporter la solution lorsquee bloqué pour la solution suivante
 // =====================================================================
 
 #include <iostream>
@@ -43,6 +43,38 @@ public:
     }
 };
 
+class CombinedStop : public Gecode::Search::Stop {
+private:
+    Gecode::Search::Stop* a;
+    Gecode::Search::Stop* b;
+
+    bool* interruptFlag;
+    bool* timeoutFlag;
+
+public:
+    CombinedStop(Gecode::Search::Stop* s1,
+                 Gecode::Search::Stop* s2,
+                 bool* interruptPtr,
+                 bool* timeoutPtr)
+        : a(s1),
+          b(s2),
+          interruptFlag(interruptPtr),
+          timeoutFlag(timeoutPtr) {}
+
+    virtual bool stop(const Gecode::Search::Statistics& st,
+                      const Gecode::Search::Options& op) {
+
+        bool interrupt = a->stop(st, op);
+        bool timeout   = b->stop(st, op);
+
+        if (interrupt) *interruptFlag = true;
+        if (timeout)   *timeoutFlag   = true;
+
+        return interrupt || timeout;
+    }
+};
+
+
 int main() {
 
     // =========================================================
@@ -63,18 +95,20 @@ int main() {
     // 3 voix : spList = {THIRD_SPECIES, FIRST_SPECIES},  v_type = {2, 1}
     // 4 voix : spList = {THIRD_SPECIES, FIRST_SPECIES, SECOND_SPECIES}, v_type = {2, 1, -1}
     // =========================================================
-    vector<Species> spList = {FOURTH_SPECIES};
-    vector<int> v_type     = {2};
+    vector<Species> spList = {SECOND_SPECIES, SECOND_SPECIES};
+    vector<int> v_type     = {2,3};
 
     // calcul du nombre d'intervalles mélodiques par voix selon l'espèce
-    int nIntervals = 0;
-    switch (spList[0]) {
-        case FIRST_SPECIES:  nIntervals = size - 1;        break;
-        case SECOND_SPECIES: nIntervals = 2 * (size - 1);  break;
-        case THIRD_SPECIES:  nIntervals = 4 * (size - 1);  break;
-        case FOURTH_SPECIES: nIntervals = 2 * (size - 1);  break;
-        case FIFTH_SPECIES:  nIntervals = 4 * (size - 1);  break;
-        default:             nIntervals = size - 1;         break;
+    vector<int> nIntervalsPerVoice;
+    for (int v = 0; v < (int)spList.size(); ++v) {
+        switch (spList[v]) {
+            case FIRST_SPECIES:  nIntervalsPerVoice.push_back(size - 1);        break;
+            case SECOND_SPECIES: nIntervalsPerVoice.push_back(2 * (size - 1));  break;
+            case THIRD_SPECIES:  nIntervalsPerVoice.push_back(4 * (size - 1));  break;
+            case FOURTH_SPECIES: nIntervalsPerVoice.push_back(2 * (size - 1));  break;
+            case FIFTH_SPECIES:  nIntervalsPerVoice.push_back(4 * (size - 1));  break;
+            default:             nIntervalsPerVoice.push_back(size - 1);         break;
+        }
     }
 
     // =========================================================
@@ -109,37 +143,33 @@ int main() {
     //      build_inverted_v_shape(n)    : s monte puis descend (∧)
     //      build_v_shape(n)             : s descend puis monte (∨)
     //      build_M_shape(n)             : s en forme de M
+    //      build_step_shape(n);         : s fait 0->1 avec un escalier au milieu
+    //      build_step_desc_shape(n);    : s fait 1->0 avec un escalier au milieu
     // =========================================================
     CostModel costModel;
 
-    // Groupe 1 : fifth + octave en V inversé pour valeur de s
+    // Groupe 1 : fifth + octave
     CostGroup harmonicGroup;
     harmonicGroup.costIndices = {COST_FIFTH, COST_OCTAVE};
     harmonicGroup.fn          = harmo;
-    harmonicGroup.defaultShape = build_inverted_v_shape(nMeasures);
+    harmonicGroup.shapePerVoice = {
+        build_step_shape(nMeasures),
+        build_step_desc_shape(nMeasures)
+    };
     //costModel.addGroup(harmonicGroup); // décommenter pour activer
 
-    // Groupe 2 : succ + direct constants à s=1 
-    CostGroup perfConsGroup;
-    perfConsGroup.costIndices = {COST_SUCC, COST_DIRECT};
-    perfConsGroup.fn          = perf_cons;
-    perfConsGroup.defaultShape = build_constant_one_shape(nMeasures);
-    //costModel.addGroup(perfConsGroup); // décommenter pour activer
 
-    // Groupe 3 : triad + triad3 linéaire pour valeur de s
-    CostGroup triadGrp;
-    triadGrp.costIndices = {COST_TRIAD, COST_TRIAD3};
-    triadGrp.fn          = triad_group;
-    triadGrp.defaultShape = build_linear_shape(nMeasures);
-    //costModel.addGroup(triadGrp); // décommenter pour activer
-
-    // Groupe 4 : mélodiques constants à s=0
+    // Groupe 2 : mélodiques constants à s=0
     CostGroup melodicGroup;
     melodicGroup.costIndices = {COST_MELODIC};
-    melodicGroup.fn          = steps1;
+    melodicGroup.fn          = steps1;            // par défaut si voix non définie
+    melodicGroup.fnPerVoice  = {
+        steps1,  // voix 2
+        steps1
+    };
     melodicGroup.shapePerVoice = {
-        build_constant_zero_shape(nIntervals), 
-        // build_v_shape(nIntervals),         
+        build_constant_zero_shape(nMeasures),
+        build_constant_zero_shape(nMeasures)
     };
     costModel.addGroup(melodicGroup);
 
@@ -175,11 +205,12 @@ int main() {
     int borrowMode = 0; // 0 = pas d'emprunt, 1 = emprunt autorisé
 
     ObjectiveMode objMode = OBJECTIVE_LEX; // optimisation lexicographique (par défaut)
-    // ObjectiveMode objMode = OBJECTIVE_MINMAX; // optimisation minmax (minimise le pire coût pondéré)
-    // ObjectiveMode objMode = OBJECTIVE_WEIGHTED; // optimisation de la somme pondérée 
+    //ObjectiveMode objMode = OBJECTIVE_MINMAX; // optimisation minmax (minimise le pire coût pondéré)
+    //ObjectiveMode objMode = OBJECTIVE_SUMWEIGHTED; // optimisation de la somme pondérée 
 
-    
+    int time_limit_seconds = 600;
     int    target_solution = 100000; // nombre de solutions à trouver avant d'arrêter la recherche
+    
     string midi_output     = "../../results/experiment.mid"; // chemin du fichier MIDI exporté à la fin de la recherche
 
     /// =========================================================
@@ -188,13 +219,13 @@ int main() {
     // =========================================================
     fill(activeConstraints.begin(), activeConstraints.end(), true);
 
-    /**CounterpointProblem* problem = create_problem(
+    CounterpointProblem* problem = create_problem(
         cf, spList, v_type,
         costModel, 
         importance, borrowMode, objMode
-    );**/
+    );
 
-    // Remplace temporairement create_problem avec CostModel par l'ancienne API
+    /* Remplace  create_problem avec CostModel par l'ancienne API
     vector<int> m_costs = {4, 1, 2, 576, 2, 3, 3, 4};
     vector<int> g_costs = {4, 1, 1, 4, 1, 2, 8, 8};
     vector<int> s_costs = {8, 4, 0, 2, 1, 8, 50};
@@ -204,19 +235,38 @@ int main() {
         cf, spList, v_type,
         m_costs, g_costs, s_costs,
         imp, borrowMode, objMode
-    );
+    );*/
 
     // =========================================================
     // 8. RECHERCHE par Branch and Bound, solutions trouvées croissantes en coût global
     // S'arrête si le nombre de solutions atteint target_solution, si l'utilisateur interrompt, ou si plus de solutions
     // =========================================================
+    // Debug — à ajouter ici
+    cout << "=== unitedCostNames ===" << endl;
+    for (int i = 0; i < (int)problem->getUnitedCostNames().size(); ++i)
+        cout << "  " << i << " : " << problem->getUnitedCostNames()[i] << endl;
+        
     signal(SIGINT, signal_handler);
 
     Gecode::Search::Options opts;
     opts.threads = 1;
 
-    InterruptStop stop;
-    opts.stop = &stop;
+    
+
+    bool stopped_by_interrupt = false;
+    bool stopped_by_timeout   = false;
+
+    InterruptStop interruptStop;
+    Gecode::Search::TimeStop timeStop(time_limit_seconds * 1000);
+
+    CombinedStop combinedStop(
+        &interruptStop,
+        &timeStop,
+        &stopped_by_interrupt,
+        &stopped_by_timeout
+    );
+
+    opts.stop = &combinedStop;
 
     Search::Base<CounterpointProblem>* e =
         new BAB<CounterpointProblem>(problem, opts);
@@ -235,7 +285,7 @@ int main() {
 
     string best_solution_text;
 
-    while (!interrupted) {
+    while (true) {
         CounterpointProblem* pb = get_next_solution_space(e);
         if (pb == nullptr) break; // si plus de solutions, on arrête la recherche
 
@@ -250,7 +300,8 @@ int main() {
 
         cout << "[Sol " << nb_sol << "] t=" << elapsed
              << " s | coût=" << total_cost
-             << " | détail : " << intVarArgs_to_string(pb->cost()) << endl;
+             << " | final : " << intVarArgs_to_string(pb->cost())
+             << " | united : " << intVarArray_to_string(pb->getUnitedCosts()) << endl;
         
         // Sauvegarde de la solution trouvée
         best_solution.clear();
@@ -266,11 +317,19 @@ int main() {
 
         delete pb;
     }
-    if (interrupted){
-        cout << "\nRecherche interrompue — export de la dernière solution." << endl;
+    if (stopped_by_interrupt) {
+        cout << "\nRecherche arrêtée par Ctrl+C." << endl;
     }
-    else{
-        cout << "\nRecherche terminée — toutes les solutions optimales trouvées." << endl;
+    else if (stopped_by_timeout) {
+        cout << "\nRecherche arrêtée par limite de temps ("
+            << time_limit_seconds
+            << " secondes)." << endl;
+    }
+    else if (nb_sol == target_solution) {
+        cout << "\nRecherche arrêtée : nombre cible de solutions atteint." << endl;
+    }
+    else {
+        cout << "\nRecherche terminée : arbre de recherche épuisé." << endl;
     }
 
     file_time.close();

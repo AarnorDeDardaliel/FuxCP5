@@ -65,6 +65,24 @@ std::vector<double> build_M_shape(int n) {
     return s;
 }
 
+std::vector<double> build_step_shape(int n) {
+    std::vector<double> s; s.reserve(n);
+    for (int i = 0; i < n; ++i) {
+        double x = n <= 1 ? 0.0 : (double)i / (n - 1);
+        s.push_back(x < 0.5 ? 0.0 : 1.0);
+    }
+    return s;
+}
+
+std::vector<double> build_step_desc_shape(int n) {
+    std::vector<double> s; s.reserve(n);
+    for (int i = 0; i < n; ++i) {
+        double x = n <= 1 ? 0.0 : (double)i / (n - 1);
+        s.push_back(x < 0.5 ? 1.0 : 0.0);
+    }
+    return s;
+}
+
 // =====================================================================
 // FONCTIONS DE GROUPE
 // =====================================================================
@@ -76,7 +94,7 @@ std::vector<int> steps1(double s) {
         q(4.0 * s),         // 2nd
         q(1.0 + 2.0 * s),   // 3rd
         2,                   // 4th  fixe
-        576,                 // tritone toujours très pénalisé
+        576,                 // tritone interdit
         2,                   // 5th  fixe
         q(3.0 - 2.0 * s),   // 6th
         q(3.0 - 2.0 * s),   // 7th
@@ -84,43 +102,26 @@ std::vector<int> steps1(double s) {
     };
 }
 
+// Couts mélodiques : s=0 dissonances interdites, s=1 parfaites consonances interdites
 std::vector<int> steps2(double s) {
     s = between01(s);
     return {
-        q(576.0 - 574.0 * s), // 2nd : de "interdit" à "excellent"
-        q(2.0),               // 3rd : fixe et stable
-        q(576.0 - 574.0 * s),     // 4th : de "interdit" à "excellent"
-        q(576.0 - 560.0 * s), // tritone : de "interdit" à "acceptable"
-        q(2.0 + 574.0 * s),    // 5th : de "parfait" à "interdit"
-        q(2.0),               // 6th : fixe et stable
-        q(576.0 - 574.0 * s), // 7th : de "interdit" à "excellent"
-        q(2.0 + 574.0 * s)     // 8th : de "parfait" à "interdit"
+        q(576.0 - 574.0 * s), // 2nd : de interdit à excellent
+        q(2.0),               // 3rd : fixe
+        q(576.0 - 574.0 * s),     // 4th : de interdit à excellent
+        576, // tritone : interdit
+        q(2.0 + 574.0 * s),    // 5th : de parfait à interdit
+        q(2.0),               // 6th : fixe
+        q(576.0 - 574.0 * s), // 7th : de interdit à excellent
+        q(2.0 + 574.0 * s)     // 8th : de parfait à interdit
     };
 }
 
-// Fifth + octave : s=0 peu pénalisés, s=1 fortement pénalisés
+// Couts harmonique: Fifth + octave : s=0 ocatves pénalisés, s=1 fifths pénalisés
 std::vector<int> harmo(double s) {
     s = between01(s);
     return {
-        q(4.0 * s),        // fifth  : 0 -> 4
-        q(4.0 - 4.0 * s)   // octave : 4 -> 0 (sens inverse)
-    };
-}
-
-// Succ + direct : s=0 peu pénalisés, s=1 fortement pénalisés
-std::vector<int> perf_cons(double s) {
-    s = between01(s);
-    return {
-        q(8.0 * s),   // succ
-        q(8.0 * s)    // direct
-    };
-}
-
-// Triad + triad3 : s=0 peu pénalisés, s=1 fortement pénalisés
-std::vector<int> triad_group(double s) {
-    s = between01(s);
-    return {
-        q(4.0 * s),   // triad
-        q(2.0 * s)    // triad3
+        q(1 + 9.0 * s),        // fifth  : 1 -> 10
+        q(10.0 - 9.0 * s)   // octave : 10 -> 1 
     };
 }

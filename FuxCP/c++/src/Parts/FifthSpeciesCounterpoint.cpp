@@ -533,7 +533,7 @@ FifthSpeciesCounterpoint::FifthSpeciesCounterpoint(Home home, int nMes, vector<i
         rel(home, fifthSpeciesM2Intervals[i], IRT_EQ, 0, Reify(b));
         rel(home, isConstrainedArray[i], BOT_AND, isConstrainedArray[i+2], band2);
         rel(home, b, BOT_AND, band2, band);
-        ite(home, band, IntVar(home, getM2ZeroCostAt(i/4), getM2ZeroCostAt(i)), IntVar(home, 0, 0), m2ZeroCostArray[i]);
+        ite(home, band, IntVar(home, getM2ZeroCostAt(i/4), getM2ZeroCostAt(i/4)), IntVar(home, 0, 0), m2ZeroCostArray[i]);
     }
 
     snycopeCostArray = IntVarArray(home, (fifthSpeciesMIntervals.size())/4, 0, syncopationCost);

@@ -133,15 +133,16 @@ TwoVoiceCounterpoint::TwoVoiceCounterpoint(vector<int> cf, Species sp,
     upper_1 = new Stratum(*this, nMeasures, 0, 127, lowest->getNotes());
     upper_2 = nullptr;
     upper_3 = nullptr;
+    std::vector<int> m_costs = costModel.isGrouped(COST_MELODIC, 0) ? costModel.getGeneralCostsAt(0, 0) : costModel.getMelodicCostsDefault();
 
     // Dorian Genon — costModel et voiceIndex=0 passés directement à create_counterpoint
     // Les profils positionnels sont construits dans Part dès la construction
     counterpoint_1 = create_counterpoint(*this, species, nMeasures, cf,
         (6 * v_type - 12) + cf[0], (6 * v_type + 12) + cf[0],
         lowest, cantusFirmus, v_type,
-        costModel.getGeneralCostsAt(0, 0),  // m_costs fixe — profils gérés dans Part
-        costModel.getGeneralCostsAt(0, 0),  // g_costs — idem
-        costModel.getSpecificCostsAt(0, 0), // s_costs — idem
+        m_costs,  // m_costs fixe — profils gérés dans Part
+        costModel.getGeneralCostsMax(0),  // g_costs — idem
+        costModel.getSpecificCostsMax(0), // s_costs — idem
         bm, TWO_VOICES, {}, &costModel, 0);  // melodicShape vide, costModel, voiceIndex=0
 
     counterpoint_2 = nullptr;

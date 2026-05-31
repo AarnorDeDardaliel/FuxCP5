@@ -193,12 +193,12 @@ void H5_1_differentNotes(Home home, vector<Part*> parts){
 void H6_1_preferImperfectConsonances(Home home, Part* part){
     for(int i = 0; i < part->getHIntervals().size(); i++){
         //set the octave cost
-        rel(home, part->getOctaveCostArray()[i], IRT_EQ, part->getHOctaveCostAt(i), Reify(expr(home, part->getHIntervals()[i]==UNISSON), RM_PMI));
-        rel(home, part->getOctaveCostArray()[i], IRT_EQ, 0, Reify(expr(home, part->getHIntervals()[i]!=UNISSON), RM_PMI));
+        rel(home, part->getOctaveCostArray()[i], IRT_EQ, part->getHOctaveCostAt(i), Reify(expr(home, part->getHIntervals()[i]==UNISSON), RM_IMP));
+        rel(home, part->getOctaveCostArray()[i], IRT_EQ, 0, Reify(expr(home, part->getHIntervals()[i]!=UNISSON), RM_IMP));
 
         //set the fifth cost
-        rel(home, part->getFifthCostArray()[i], IRT_EQ, part->getHFifthCostAt(i), Reify(expr(home, part->getHIntervals()[i]==PERFECT_FIFTH), RM_PMI));
-        rel(home, part->getFifthCostArray()[i], IRT_EQ, 0, Reify(expr(home, part->getHIntervals()[i]!=PERFECT_FIFTH), RM_PMI));
+        rel(home, part->getFifthCostArray()[i], IRT_EQ, part->getHFifthCostAt(i), Reify(expr(home, part->getHIntervals()[i]==PERFECT_FIFTH), RM_IMP));
+        rel(home, part->getFifthCostArray()[i], IRT_EQ, 0, Reify(expr(home, part->getHIntervals()[i]!=PERFECT_FIFTH), RM_IMP));
     }
 }
 
@@ -274,7 +274,7 @@ void H8_3v_preferHarmonicTriad(Home home, Part* part, IntVarArray triadCostArray
         rel(home, h_firstPoss, BOT_OR, h_secondPoss, triad);   //is a triad if it is either the first or the second possibility
         rel(home, triad, BOT_XOR, not_triad, 1);               //set not triad
         rel(home, triadCostArray[i], IRT_EQ, 0, Reify(triad, RM_IMP));
-        rel(home, triadCostArray[i], IRT_EQ, part->getTriadCost(), Reify(not_triad, RM_IMP));
+        rel(home, triadCostArray[i], IRT_EQ, part->getTriadCostAt(i), Reify(not_triad, RM_IMP));
     }
 }
 

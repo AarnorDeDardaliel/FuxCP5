@@ -201,7 +201,7 @@ FourthSpeciesCounterpoint::FourthSpeciesCounterpoint(Home home, int nMes, vector
     //4.M2 notes and two beats further are preferred to be different
     if (activeConstraints[SP4_4M2]) {
         for(int i = 0; i < m2ZeroArray.size(); i++){
-            rel(home, (fourthSpeciesNotesCp[(i*2)]==fourthSpeciesNotesCp[(i*2)+4]) >> (m2ZeroArray[i]==getM2ZeroCostAt(i*2)));
+            rel(home, (fourthSpeciesNotesCp[(i*2)]==fourthSpeciesNotesCp[(i*2)+4]) >> (m2ZeroArray[i]==getM2ZeroCostAt(i)));
             rel(home, (fourthSpeciesNotesCp[(i*2)]!=fourthSpeciesNotesCp[(i*2)+4]) >> (m2ZeroArray[i]==0));
         }
     }

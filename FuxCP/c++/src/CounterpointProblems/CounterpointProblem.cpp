@@ -192,7 +192,7 @@ IntVarArgs CounterpointProblem::cost() const {
     if (objectiveMode == OBJECTIVE_LEX) {
         return IntVarArgs(finalCosts);  // lexico pur, sans ponderedGlobalCost en tête
     }
-    return IntVarArgs(ponderedGlobalCost + finalCosts);  // total/mixed : scalaire en tête
+    return IntVarArgs(ponderedGlobalCost + finalCosts);  // total/weighted : scalaire en tête
 }
 
 string CounterpointProblem::to_string() const {
@@ -234,11 +234,8 @@ double CounterpointProblem::getCost() const {
 
 void CounterpointProblem::orderCosts(){
 
-    // =========================================================
-    // ÉTAPE 1 : construction de finalCosts lexico (commun aux 3 méthodes)
-    // On construit toujours le vecteur lexico d'abord car c'est la base
-    // des coûts musicaux — les autres modes l'utilisent comme point de départ
-    // =========================================================
+    // construction de lexCosts (commun aux 3 méthodes)
+    // On construit toujours le vecteur lexico d'abord car les autres modes l'utilisent comme point de départ
     for(int i = 0; i < 14; i++){
         if(!costLevels[i].empty()){
             int sm_size = 0;
@@ -252,8 +249,19 @@ void CounterpointProblem::orderCosts(){
             for(int k = 0; k < costLevels[i].size(); k++){
                 for(int t = 0; t < unitedCostNames.size(); t++){
                     if(unitedCostNames[t]==costLevels[i][k]){
-                        sm[idx] = unitedCosts[t];
-                        idx++;
+                        if(counterpoint_2 == nullptr){
+                            sm[idx] = unitedCosts[t];
+                            idx++;
+                        }
+                        else{
+                            for(int j = 0; j < 14; j++){
+                                if(importanceNames[j] == unitedCostNames[t]){
+                                    sm[idx] = unitedCosts[j];
+                                    idx++;
+                                    break;
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -264,39 +272,54 @@ void CounterpointProblem::orderCosts(){
         }
     }
 
-    // finalCosts lexico — base commune
     IntVarArray lexCosts(*this, n_unique_costs, 0, 1000000);
     for(int i = 0; i < n_unique_costs; i++){
         rel(*this, lexCosts[i], IRT_EQ, orderedFactors[i]);
     }
 
-    // globalCost = somme des coûts musicaux bruts (pour reporting)
+    // globalCost = somme des coûts musicaux bruts
     rel(*this, globalCost, IRT_EQ, expr(*this, sum(lexCosts)));
 
-    // =========================================================
-    // ÉTAPE 2 : construction de finalCosts selon le mode
-    // =========================================================
+    
+    
+    cout << "=== costLevels ===" << endl;
+    for (int i = 0; i < 14; i++) {
+        if (!costLevels[i].empty()) {
+            cout << "  niveau " << i+1 << " : ";
+            for (auto& s : costLevels[i]) cout << s << " ";
+            cout << endl;
+        }
+    }
+    // construction de finalCosts selon le mode
 
     if(objectiveMode == OBJECTIVE_LEX) {
 
-        // --- LEXICO ---
-        // Le solver optimise le vecteur ordonné par priorité
-        // finalCosts[0] = coût le plus prioritaire, ..., finalCosts[n-1] = le moins
+        // LEXICO
         finalCosts = lexCosts;
         rel(*this, ponderedGlobalCost, IRT_EQ, 0);  // neutralisé
 
     } else if(objectiveMode == OBJECTIVE_MINMAX) {
 
-        // --- MINMAX ---
-        // Minimise le maximum des coûts pondérés par (15 - rang)
-        // coeff = 15 - rang, rang 1 → coeff 14, rang 14 → coeff 1
+        // MINMAX
         IntVarArgs weightedCosts;
         for(int t = 0; t < unitedCostNames.size(); t++){
             string name = unitedCostNames[t];
             int rank = prefs[name];
             int coeff = 15 - rank;
+            int importanceIdx = -1;
+            for(int j = 0; j < (int)importanceNames.size(); j++){
+                if(importanceNames[j] == name){
+                    importanceIdx = j;
+                    break;
+                }
+            }
+            if(importanceIdx < 0) continue;
             IntVar wc(*this, 0, 10000000);
-            rel(*this, wc, IRT_EQ, expr(*this, unitedCosts[t] * coeff));
+            if(counterpoint_2 == nullptr){
+                rel(*this, wc, IRT_EQ, expr(*this, unitedCosts[t] * coeff));
+            } else {
+                rel(*this, wc, IRT_EQ, expr(*this, unitedCosts[importanceIdx] * coeff));
+            }
             weightedCosts << wc;
         }
 
@@ -311,18 +334,28 @@ void CounterpointProblem::orderCosts(){
         rel(*this, finalCosts[0], IRT_EQ, maxCost);
         rel(*this, ponderedGlobalCost, IRT_EQ, maxCost);
 
-    } else if(objectiveMode == OBJECTIVE_WEIGHTED) {
+    } else if(objectiveMode == OBJECTIVE_SUMWEIGHTED) {
 
-        // --- SOMME PONDÉRÉE ---
-        // Minimise la somme de tous les coûts × (15 - rang)
-        // coeff = 15 - rang, rang 1 → coeff 14, rang 14 → coeff 1
+        // SOMME PONDÉRÉE
         IntVarArgs weightedCosts;
         for(int t = 0; t < unitedCostNames.size(); t++){
             string name = unitedCostNames[t];
             int rank = prefs[name];
             int coeff = 15 - rank;
+            int importanceIdx = -1;
+            for(int j = 0; j < (int)importanceNames.size(); j++){
+                if(importanceNames[j] == name){
+                    importanceIdx = j;
+                    break;
+                }
+            }
+            if(importanceIdx < 0) continue;
             IntVar wc(*this, 0, 10000000);
-            rel(*this, wc, IRT_EQ, expr(*this, unitedCosts[t] * coeff));
+            if(counterpoint_2 == nullptr){
+                rel(*this, wc, IRT_EQ, expr(*this, unitedCosts[t] * coeff));
+            } else {
+                rel(*this, wc, IRT_EQ, expr(*this, unitedCosts[importanceIdx] * coeff));
+            }
             weightedCosts << wc;
         }
 
@@ -338,9 +371,7 @@ void CounterpointProblem::orderCosts(){
         rel(*this, ponderedGlobalCost, IRT_EQ, weightedSum);
     }
 
-    // =========================================================
-    // ÉTAPE 3 : relaxation (priorité absolue si activée)
-    // =========================================================
+    // If relaxation costs exist, prepend totalRelaxationCost as highest priority
     if(hasRelaxation){
         IntVarArray newFinalCosts(*this, finalCosts.size() + 1, 0, 1000000);
         rel(*this, newFinalCosts[0], IRT_EQ, totalRelaxationCost);

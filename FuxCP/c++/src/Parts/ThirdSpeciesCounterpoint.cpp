@@ -174,7 +174,7 @@ ThirdSpeciesCounterpoint::ThirdSpeciesCounterpoint(Home home, int size, vector<i
     //i + i+1 + i+2
     if (activeConstraints[SP3_3M1]) {
         for(int i = 0; i < m2ZeroArray.size(); i++){
-            rel(home, ((thirdSpeciesMelodicIntervals[i]+thirdSpeciesMelodicIntervals[i+1]+thirdSpeciesMelodicIntervals[i+2])==0) >> (m2ZeroArray[i]==getM2ZeroCostAt(i)));
+            rel(home, ((thirdSpeciesMelodicIntervals[i]+thirdSpeciesMelodicIntervals[i+1]+thirdSpeciesMelodicIntervals[i+2])==0) >> (m2ZeroArray[i]==getM2ZeroCostAt(i/4)));
             rel(home, ((thirdSpeciesMelodicIntervals[i]+thirdSpeciesMelodicIntervals[i+1]+thirdSpeciesMelodicIntervals[i+2])!=0) >> (m2ZeroArray[i]==0));
         }   
     }

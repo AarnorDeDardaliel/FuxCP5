@@ -67,8 +67,7 @@ FirstSpeciesCounterpoint::FirstSpeciesCounterpoint(Home home, int nMes, vector<i
     
     //create the melodic degree cost array
     // Dorian Genon — domaine élargi pour permettre les coûts mélodiques positionnels
-    melodicDegreeCost = IntVarArray(home, m_intervals_brut.size(), 0, 
-        max({secondCost, thirdCost, fourthCost, tritoneCost, fifthCost, sixthCost, seventhCost, octaveCost}));
+    melodicDegreeCost = IntVarArray(home, m_intervals_brut.size(), 0, 576);
 
     //create motions arrays
     firstSpeciesMotions = IntVarArray(home, nMeasures* notesPerMeasure.at(FIRST_SPECIES) -1, IntSet{-1, CONTRARY_MOTION, OBLIQUE_MOTION, PARALLEL_MOTION});
